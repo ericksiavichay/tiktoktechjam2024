@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Only tested on runpod.io servers
+
 # Change to the backend directory and download the SAM model checkpoint
 cd backend || exit
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
@@ -25,6 +27,8 @@ SERVER=local
 EOL
 
 mkdir movies
+
+apt install vim
 
 curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	| tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \

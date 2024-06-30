@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import './FrameEditor.css';
 import { FaStar } from 'react-icons/fa';
 
-const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST || 'http://localhost';
-const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT || '5001';
-const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST || 'http://dummyurl.com';
+const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
+const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
+const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function FrameEditor({ frame, frameIndex, totalFrames }) {
     const [keypoints, setKeypoints] = useState([]);

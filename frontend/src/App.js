@@ -3,9 +3,9 @@ import FrameSlider from './components/FrameSlider';
 import FrameEditor from './components/FrameEditor';
 import './App.css';
 
-const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST || 'http://localhost';
-const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT || '5001';
-const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST || 'http://dummyurl.com';
+const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
+const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
+const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function App() {
   const [movies, setMovies] = useState([]);

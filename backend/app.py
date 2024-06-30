@@ -6,7 +6,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for development
 
@@ -16,9 +16,8 @@ MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 30  # Assuming a common FPS; can be adjusted as needed
 
 MOVIES_DIR = "../movies"
-LOCAL_BACKEND_PORT = int(os.getenv("REACT_APP_LOCAL_BACKEND_PORT", 5001))
-LOCAL_HOST = os.getenv("REACT_APP_LOCAL_HOST", "http://localhost")
-REMOTE_HOST = os.getenv("REACT_APP_REMOTE_HOST", "http://dummyurl.com")
+LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
+LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
 SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":

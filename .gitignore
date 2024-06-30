@@ -11,5 +11,6 @@ Thumbs.db
 .vscode/
 
 movies/
-.env
 .conda/
+frontend/.env
+backend/.env

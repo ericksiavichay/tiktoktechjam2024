@@ -18,17 +18,21 @@ cd ..
 
 
 
-# Create .env file at the root of the project
-cat <<EOL > .env
+# Create .env files at the root of frontend and backend directories
+cat <<EOL > backend/.env
 LOCAL_BACKEND_PORT=5001
 LOCAL_HOST=http://localhost
-REMOTE_HOST=http://dummyurl.com
 SERVER=local
+EOL
+
+cat <<EOL > frontend/.env
+REACT_APP_LOCAL_BACKEND_PORT=5001
+REACT_APP_LOCAL_HOST=http://localhost
+REACT_APP_REMOTE_HOST=http://dummyurl.com
 EOL
 
 mkdir movies
 
-apt install vim
 
 curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	| tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
@@ -37,10 +41,13 @@ curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	&& apt update \
 	&& apt install ngrok
 
+apt install vim
+
+
 # create ngrok auth token env variable
 echo "Please enter your ngrok auth token: "
 read -r NGROK_AUTH_TOKEN
 export NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN
 ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
-echo "Setup complete. Please edit the .env file to configure your settings."
+echo "Setup complete. Please edit the .env files to configure your settings."

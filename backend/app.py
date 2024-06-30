@@ -19,6 +19,7 @@ MOVIES_DIR = "../movies"
 LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
 LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
 REMOTE_HOST = os.getenv("REMOTE_HOST", "http://dummyurl.com")
+REMOTE_PORT = os.getenv("REMOTE_PORT", 5001)
 SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":

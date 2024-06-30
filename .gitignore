@@ -1,0 +1,15 @@
+# Ignore common files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.cache
+*.idea/
+.vscode/
+
+movies/
+.env
+.conda/

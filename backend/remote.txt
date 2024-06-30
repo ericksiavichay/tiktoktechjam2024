@@ -1,0 +1,5 @@
+opencv-python
+flask
+flask-cors
+python-dotenv
+git+https://github.com/facebookresearch/segment-anything.git

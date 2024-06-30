@@ -1,0 +1,41 @@
+.frame-editor {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.tools {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.tool-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.tool-button.selected {
+    background-color: #f0f0f0;
+}
+
+.tool-button:hover {
+    background-color: #e0e0e0;
+}
+
+.selected-frame {
+    position: relative;
+    display: inline-block;
+}
+
+.selected-frame img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}

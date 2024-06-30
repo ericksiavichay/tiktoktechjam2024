@@ -16,10 +16,9 @@ MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 30  # Assuming a common FPS; can be adjusted as needed
 
 MOVIES_DIR = "../movies"
-LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
-LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
-REMOTE_HOST = os.getenv("REMOTE_HOST", "http://dummyurl.com")
-REMOTE_PORT = os.getenv("REMOTE_PORT", 5001)
+LOCAL_BACKEND_PORT = int(os.getenv("REACT_APP_LOCAL_BACKEND_PORT", 5001))
+LOCAL_HOST = os.getenv("REACT_APP_LOCAL_HOST", "http://localhost")
+REMOTE_HOST = os.getenv("REACT_APP_REMOTE_HOST", "http://dummyurl.com")
 SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
@@ -58,29 +57,28 @@ def resize_and_crop_frame(frame):
 
 @app.route("/segment_frame", methods=["POST"])
 def segment_frame():
-    # data = request.get_json()
-    # frame_base64 = data["frame"]
-    # keypoints = np.array(data["keypoints"])
-    # labels = np.array(data["labels"])
+    data = request.get_json()
+    frame_base64 = data["frame"]
+    keypoints = np.array(data["keypoints"])
+    labels = np.array(data["labels"])
 
-    # nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
-    # frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    # predictor.set_image(frame_rgb)
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    predictor.set_image(frame_rgb)
 
-    # masks, scores, logits = predictor.predict(
-    #     point_coords=keypoints,
-    #     point_labels=labels,
-    #     multimask_output=False,
-    # )
+    masks, scores, logits = predictor.predict(
+        point_coords=keypoints,
+        point_labels=labels,
+        multimask_output=False,
+    )
 
-    # segmented_frame = masks[0]
-    # _, buffer = cv2.imencode(".jpg", segmented_frame)
-    # segmented_frame_str = base64.b64encode(buffer).decode("utf-8")
+    segmented_frame = masks[0]
+    _, buffer = cv2.imencode(".jpg", segmented_frame)
+    segmented_frame_str = base64.b64encode(buffer).decode("utf-8")
 
-    # return jsonify({"segmented_frame": segmented_frame_str})
-    return jsonify({"message": "Remote server recieved message"})
+    return jsonify({"segmented_frame": segmented_frame_str})
 
 
 @app.route("/movies", methods=["GET"])

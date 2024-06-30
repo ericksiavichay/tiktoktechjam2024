@@ -54,6 +54,20 @@ def resize_and_crop_frame(frame):
     return frame_str
 
 
+def blend_mask_with_image(image, mask, color=(0, 255, 0), alpha=0.5):
+    # Ensure mask is binary
+    mask = mask.astype(np.uint8) * 255
+
+    # Create a color version of the mask
+    color_mask = np.zeros_like(image)
+    color_mask[mask == 255] = color
+
+    # Blend the color mask with the original image
+    blended = cv2.addWeighted(image, 1 - alpha, color_mask, alpha, 0)
+
+    return blended
+
+
 @app.route("/segment_frame", methods=["POST"])
 def segment_frame():
     data = request.get_json()
@@ -74,9 +88,27 @@ def segment_frame():
     )
 
     # Convert boolean mask to uint8
-    segmented_frame = (masks[0] * 255).astype(np.uint8)
+    mask = masks[0].astype(np.uint8)
+    segmented_frame = blend_mask_with_image(
+        frame_rgb, mask, color=(0, 255, 0), alpha=0.5
+    )
 
-    _, buffer = cv2.imencode(".jpg", segmented_frame)
+    # Convert blended frame to BGR for encoding
+    segmented_frame_bgr = cv2.cvtColor(segmented_frame, cv2.COLOR_RGB2BGR)
+
+    # Draw keypoints on the blended frame
+    for (x, y), label in zip(keypoints, labels):
+        color = (0, 255, 0) if label == 1 else (0, 0, 255)
+        cv2.drawMarker(
+            segmented_frame_bgr,
+            (x, y),
+            color,
+            markerType=cv2.MARKER_STAR,
+            markerSize=20,
+            thickness=2,
+        )
+
+    _, buffer = cv2.imencode(".jpg", segmented_frame_bgr)
     segmented_frame_str = base64.b64encode(buffer).decode("utf-8")
 
     return jsonify({"segmented_frame": segmented_frame_str})

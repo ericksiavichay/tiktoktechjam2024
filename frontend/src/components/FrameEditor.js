@@ -88,21 +88,24 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
                     Segment Frame
                 </button>
             </div>
-            <div className="selected-frame" onClick={handleMouseClick}>
-                <img src={`data:image/jpeg;base64,${frame}`} alt="Selected Frame" />
-                {keypoints.map((kp, index) => (
-                    <FaStar
-                        key={index}
-                        color={kp.type === 'positive' ? 'green' : 'red'}
-                        style={{ position: 'absolute', top: kp.y, left: kp.x, pointerEvents: 'none' }}
-                    />
-                ))}
-            </div>
-            {segmentedFrame && (
-                <div className="segmented-frame">
-                    <img src={`data:image/jpeg;base64,${segmentedFrame}`} alt="Segmented Frame" />
+            <div className="images-container">
+                <div className="selected-frame" onClick={handleMouseClick}>
+                    <img src={`data:image/jpeg;base64,${frame}`} alt="Selected Frame" />
+                    {keypoints.map((kp, index) => (
+                        <FaStar
+                            key={index}
+                            className="star-icon"
+                            color={kp.type === 'positive' ? 'green' : 'red'}
+                            style={{ top: kp.y, left: kp.x }}
+                        />
+                    ))}
                 </div>
-            )}
+                {segmentedFrame && (
+                    <div className="segmented-frame">
+                        <img src={`data:image/jpeg;base64,${segmentedFrame}`} alt="Segmented Frame" />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

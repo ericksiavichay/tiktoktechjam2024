@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FrameEditor.css';
 import { FaStar } from 'react-icons/fa';
 
-const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
-const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
 const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function FrameEditor({ frame, frameIndex, totalFrames }) {
@@ -36,7 +34,7 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
         }
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         document.addEventListener('keydown', handleBackspace);
         return () => {
             document.removeEventListener('keydown', handleBackspace);
@@ -45,17 +43,21 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
 
     const handleSegmentFrame = async () => {
         try {
+            console.log('Sending request to:', `${REMOTE_HOST}/segment_frame`);
             const response = await fetch(`${REMOTE_HOST}/segment_frame`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    frame,
+                    frame,  // Ensure frame is a base64 encoded string
                     keypoints: keypoints.map(kp => [kp.x, kp.y]),
                     labels: keypoints.map(kp => (kp.type === 'positive' ? 1 : 0)),
                 }),
             });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             setSegmentedFrame(data.segmented_frame);
         } catch (error) {

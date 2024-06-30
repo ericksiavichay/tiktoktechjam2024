@@ -73,7 +73,9 @@ def segment_frame():
         multimask_output=False,
     )
 
-    segmented_frame = masks[0]
+    # Convert boolean mask to uint8
+    segmented_frame = (masks[0] * 255).astype(np.uint8)
+
     _, buffer = cv2.imencode(".jpg", segmented_frame)
     segmented_frame_str = base64.b64encode(buffer).decode("utf-8")
 

@@ -5,6 +5,7 @@ import base64
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import sys
 
 load_dotenv()
 app = Flask(__name__)
@@ -21,15 +22,7 @@ LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
 SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
-    from segment_anything import sam_model_registry, SamPredictor
-
     device = "cuda"
-    sam_checkpoint = "sam_vit_h_4b8939.pth"
-    model_type = "vit_h"
-    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-    sam.to(device=device)
-    predictor = SamPredictor(sam)
-
     from seg_track_anything import SegTracker, init_SegTracker, seg_acc_click
 
     # Initialize global SegTracker and configurations

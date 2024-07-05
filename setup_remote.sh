@@ -8,11 +8,13 @@ cd backend || exit
 # wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
 git clone https://github.com/z-x-yang/Segment-and-Track-Anything.git
 cd Segment-and-Track-Anything || exit
+rm app.py .gitignore README.md .gitattributes 
+# get back to the backend directory
+cd ..
+mv Segment-and-Track-Anything/* .
 bash script/install.sh
 mkdir ./ckpt
 bash script/download_ckpt.sh
-
-cd ..
 curl -L -o inpaint.safetensors "https://civitai.com/api/download/models/125821"
 
 # Upgrade pip

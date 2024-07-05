@@ -4,10 +4,11 @@ import { FaStar } from 'react-icons/fa';
 
 const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
-function FrameEditor({ frame, frameIndex, totalFrames }) {
+function FrameEditor({ frame }) {
     const [keypoints, setKeypoints] = useState([]);
     const [selectedTool, setSelectedTool] = useState('positive');
-    const [segmentedFrame, setSegmentedFrame] = useState(null);
+    const [blendedFrame, setBlendedFrame] = useState(null);
+    const [mask, setMask] = useState(null);
 
     const handleMouseClick = (e) => {
         const rect = e.target.getBoundingClientRect();
@@ -43,7 +44,6 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
 
     const handleSegmentFrame = async () => {
         try {
-            console.log('Sending request to:', `${REMOTE_HOST}/segment_frame`);
             const response = await fetch(`${REMOTE_HOST}/segment_frame`, {
                 method: 'POST',
                 headers: {
@@ -59,7 +59,8 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            setSegmentedFrame(data.segmented_frame);
+            setBlendedFrame(data.blended_frame);
+            setMask(data.mask);
         } catch (error) {
             console.error('Error segmenting frame:', error);
         }
@@ -67,7 +68,7 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
 
     return (
         <div className="frame-editor">
-            <h2>Selected Frame {frameIndex + 1}/{totalFrames}</h2>
+            <h2>Selected Frame 1/1</h2>
             <div className="tools">
                 <button
                     className={`tool-button ${selectedTool === 'positive' ? 'selected' : ''}`}
@@ -100,9 +101,14 @@ function FrameEditor({ frame, frameIndex, totalFrames }) {
                         />
                     ))}
                 </div>
-                {segmentedFrame && (
-                    <div className="segmented-frame">
-                        <img src={`data:image/jpeg;base64,${segmentedFrame}`} alt="Segmented Frame" />
+                {blendedFrame && (
+                    <div className="blended-frame">
+                        <img src={`data:image/jpeg;base64,${blendedFrame}`} alt="Blended Frame" />
+                    </div>
+                )}
+                {mask && (
+                    <div className="mask-frame">
+                        <img src={`data:image/png;base64,${mask}`} alt="Mask" />
                     </div>
                 )}
             </div>

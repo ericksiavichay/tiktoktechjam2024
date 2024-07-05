@@ -30,6 +30,45 @@ if SERVER == "remote":
     sam.to(device=device)
     predictor = SamPredictor(sam)
 
+    from seg_track_anything import SegTracker, init_SegTracker, seg_acc_click
+
+    # Initialize global SegTracker and configurations
+    aot_model = "r50_deaotl"  # Example model, adjust as needed
+    long_term_mem = 9999
+    max_len_long_term = 9999
+    sam_gap = 100
+    max_obj_num = 255
+    points_per_side = 16
+
+    # Create a dummy frame for initialization
+    dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    segtracker, _, _, _ = init_SegTracker(
+        aot_model,
+        long_term_mem,
+        max_len_long_term,
+        sam_gap,
+        max_obj_num,
+        points_per_side,
+        dummy_frame,
+    )
+
+
+def initialize_segtracker_with_frame(frame, keypoints, labels):
+    global segtracker
+    # Convert keypoints and labels to the required format
+    points_coord = np.array(keypoints)
+    points_mode = np.array(labels)
+
+    # Reset the segtracker with the new frame
+    segtracker.restart_tracker()
+    prompt = {
+        "points_coord": points_coord,
+        "points_mode": points_mode,
+        "multimask": "True",
+    }
+
+    return prompt
+
 
 def resize_and_crop_frame(frame):
     h, w, _ = frame.shape
@@ -55,16 +94,10 @@ def resize_and_crop_frame(frame):
 
 
 def blend_mask_with_image(image, mask, color=(0, 255, 0), alpha=0.5):
-    # Ensure mask is binary
     mask = mask.astype(np.uint8) * 255
-
-    # Create a color version of the mask
     color_mask = np.zeros_like(image)
     color_mask[mask == 255] = color
-
-    # Blend the color mask with the original image
     blended = cv2.addWeighted(image, 1 - alpha, color_mask, alpha, 0)
-
     return blended
 
 
@@ -79,28 +112,17 @@ def segment_frame():
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    predictor.set_image(frame_rgb)
+    prompt = initialize_segtracker_with_frame(frame_rgb, keypoints, labels)
 
-    masks, scores, logits = predictor.predict(
-        point_coords=keypoints,
-        point_labels=labels,
-        multimask_output=False,
-    )
+    masked_frame = seg_acc_click(segtracker, prompt, frame_rgb)
+    blended_frame_bgr = cv2.cvtColor(masked_frame, cv2.COLOR_RGB2BGR)
+    mask = (masked_frame[:, :, 1] == 255).astype(np.uint8)
 
-    # Convert boolean mask to uint8
-    mask = masks[0].astype(np.uint8)
-    segmented_frame = blend_mask_with_image(
-        frame_rgb, mask, color=(0, 255, 0), alpha=0.5
-    )
-
-    # Convert blended frame to BGR for encoding
-    segmented_frame_bgr = cv2.cvtColor(segmented_frame, cv2.COLOR_RGB2BGR)
-
-    # Draw keypoints on the blended frame
+    keypoints = keypoints.astype(int)
     for (x, y), label in zip(keypoints, labels):
         color = (0, 255, 0) if label == 1 else (0, 0, 255)
         cv2.drawMarker(
-            segmented_frame_bgr,
+            blended_frame_bgr,
             (x, y),
             color,
             markerType=cv2.MARKER_STAR,
@@ -108,10 +130,13 @@ def segment_frame():
             thickness=2,
         )
 
-    _, buffer = cv2.imencode(".jpg", segmented_frame_bgr)
-    segmented_frame_str = base64.b64encode(buffer).decode("utf-8")
+    _, buffer_blended = cv2.imencode(".jpg", blended_frame_bgr)
+    blended_frame_str = base64.b64encode(buffer_blended).decode("utf-8")
 
-    return jsonify({"segmented_frame": segmented_frame_str})
+    _, buffer_mask = cv2.imencode(".png", mask)
+    mask_str = base64.b64encode(buffer_mask).decode("utf-8")
+
+    return jsonify({"blended_frame": blended_frame_str, "mask": mask_str})
 
 
 @app.route("/movies", methods=["GET"])
@@ -164,7 +189,6 @@ def get_movie_frames(filename):
             frames.append(frame_str)
             count += 1
 
-            # Log progress
             app.logger.info(f"Processed frame {count}/{total_frames}")
 
         video.release()

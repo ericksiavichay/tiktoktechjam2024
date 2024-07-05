@@ -41,6 +41,12 @@ function App() {
       const totalFrames = data.total_frames;
       setTotalFrames(totalFrames);
       setFrames(data.frames);
+
+      // Automatically select the first frame
+      if (data.frames.length > 0) {
+        setSelectedFrame(data.frames[0]);
+        setSelectedFrameIndex(0);
+      }
     } catch (error) {
       console.error('Error loading movie frames:', error);
     }

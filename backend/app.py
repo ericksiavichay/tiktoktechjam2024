@@ -52,7 +52,7 @@ if SERVER == "remote":
     aot_args["max_len_long_term"] = max_len_long_term
 
     # Initialize segmentation tracker
-    segtracker = SegTracker(segtracker_args, sam_args, aot_args).to(device)
+    segtracker = SegTracker(segtracker_args, sam_args, aot_args)
     segtracker.restart_tracker()
 
 
@@ -104,7 +104,12 @@ def segment_frame():
         "multimask": "True",
     }
 
-    mask, masked_frame = seg_acc_click(segtracker, prompt, frame_rgb)
+    predicted_mask, masked_frame = segtracker.seg_acc_click(
+        origin_frame=frame_rgb,
+        coords=prompt["points_coord"],
+        modes=prompt["points_mode"],
+        multimask=prompt["multimask"],
+    )
     mask = (masked_frame[:, :, 1] == 255).astype(np.uint8)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, mask)
 

@@ -14,18 +14,19 @@ cd ..
 mv Segment-and-Track-Anything/* .
 bash script/install.sh
 mkdir ./ckpt
+pip install gdown
 bash script/download_ckpt.sh
 curl -L -o inpaint.safetensors "https://civitai.com/api/download/models/125821"
 
 # Upgrade pip
 pip install --upgrade pip
 
-pip install --ignore-installed blinker
+pip install -y --ignore-installed blinker
 
 # Install Python dependencies from remote.txt
 pip install -r remote.txt
 
-pip uninstall transformers
+pip uninstall -y transformers
 pip install transformers
 # Change back to the root directory
 cd ..
@@ -63,4 +64,4 @@ read -r NGROK_AUTH_TOKEN
 export NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN
 ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
-echo "Setup complete. Please edit the .env files to configure your settings for host and to retrieve remote server URL."
+echo "Setup complete. Make sure to update your LOCAL FRONTEND .env and your REMOTE BACKEND .env files."

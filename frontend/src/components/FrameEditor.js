@@ -106,11 +106,11 @@ function FrameEditor({ frame }) {
                         <img src={`data:image/jpeg;base64,${blendedFrame}`} alt="Blended Frame" />
                     </div>
                 )}
-                {/* {mask && (
+                {mask && (
                     <div className="mask-frame">
                         <img src={`data:image/png;base64,${mask}`} alt="Mask" />
                     </div>
-                )} */}
+                )}
             </div>
         </div>
     );

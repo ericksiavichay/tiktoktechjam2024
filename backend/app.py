@@ -120,7 +120,7 @@ def segment_frame():
     _, buffer_blended = cv2.imencode(".jpg", blended_frame_bgr)
     blended_frame_str = base64.b64encode(buffer_blended).decode("utf-8")
 
-    _, buffer_mask = cv2.imencode(".png", mask)
+    _, buffer_mask = cv2.imencode(".png", refined_merged_mask)
     mask_str = base64.b64encode(buffer_mask).decode("utf-8")
 
     return jsonify({"blended_frame": blended_frame_str, "mask": mask_str})

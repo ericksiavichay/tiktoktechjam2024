@@ -80,7 +80,7 @@ function FrameEditor({ frame }) {
                     frame,  // Ensure frame is a base64 encoded string
                     mask,
                     prompt,
-                    negativePrompt,
+                    negative_prompt: negativePrompt,
                 }),
             });
             if (!response.ok) {

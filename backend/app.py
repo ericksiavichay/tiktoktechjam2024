@@ -99,8 +99,8 @@ def segment_frame():
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     prompt = {
-        "points_coord": keypoints.tolist(),
-        "points_mode": labels.tolist(),
+        "points_coord": keypoints,
+        "points_mode": labels,
         "multimask": "True",
     }
 

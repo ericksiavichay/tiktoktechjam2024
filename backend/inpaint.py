@@ -185,5 +185,6 @@ def inpaint(
         image=img,
         mask_image=mask,
         negative_prompt=negative_prompt,
+        output_type="np.array",
     ).images[0]
     return img_filled

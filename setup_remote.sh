@@ -21,7 +21,7 @@ curl -L -o inpaint.safetensors "https://civitai.com/api/download/models/125821"
 # Upgrade pip
 pip install --upgrade pip
 
-pip install -y --ignore-installed blinker
+pip install --ignore-installed blinker
 
 # Install Python dependencies from remote.txt
 pip install -r remote.txt
@@ -56,7 +56,7 @@ curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	&& apt update \
 	&& apt install ngrok
 
-apt install vim
+apt -y install vim
 
 # create ngrok auth token env variable
 echo "Please enter your ngrok auth token: "

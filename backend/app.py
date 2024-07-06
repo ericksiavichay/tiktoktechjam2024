@@ -104,6 +104,7 @@ def inpaint_frame():
     mask = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
     inpainted_frame = inpaint(frame, mask, prompt, negative_prompt)
+    inpainted_frame = cv2.cvtColor(inpainted_frame, cv2.COLOR_BGR2RGB)
     _, buffer = cv2.imencode(".jpg", inpainted_frame)
     inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")
 

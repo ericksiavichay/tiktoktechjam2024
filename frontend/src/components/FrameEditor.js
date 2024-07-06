@@ -12,6 +12,9 @@ function FrameEditor({ frame }) {
     const [inpaintedFrame, setInpaintedFrame] = useState(null);
     const [prompt, setPrompt] = useState('');
     const [negativePrompt, setNegativePrompt] = useState('');
+    const [guidance, setGuidance] = useState(7.5);
+    const [strength, setStrength] = useState(1.0);
+    const [iterations, setIterations] = useState(50);
 
     const handleMouseClick = (e) => {
         const rect = e.target.getBoundingClientRect();
@@ -81,6 +84,9 @@ function FrameEditor({ frame }) {
                     mask,
                     prompt,
                     negative_prompt: negativePrompt,
+                    guidance: parseFloat(guidance),
+                    strength: parseFloat(strength),
+                    iterations: parseInt(iterations),
                 }),
             });
             if (!response.ok) {
@@ -133,6 +139,33 @@ function FrameEditor({ frame }) {
                         type="text"
                         value={negativePrompt}
                         onChange={(e) => setNegativePrompt(e.target.value)}
+                    />
+                </div>
+                <div className="prompt">
+                    <label htmlFor="guidance">Guidance</label>
+                    <input
+                        id="guidance"
+                        type="number"
+                        value={guidance}
+                        onChange={(e) => setGuidance(e.target.value)}
+                    />
+                </div>
+                <div className="prompt">
+                    <label htmlFor="strength">Strength</label>
+                    <input
+                        id="strength"
+                        type="number"
+                        value={strength}
+                        onChange={(e) => setStrength(e.target.value)}
+                    />
+                </div>
+                <div className="prompt">
+                    <label htmlFor="iterations">Iterations</label>
+                    <input
+                        id="iterations"
+                        type="number"
+                        value={iterations}
+                        onChange={(e) => setIterations(e.target.value)}
                     />
                 </div>
                 <button className="tool-button" onClick={handleInpaintFrame}>

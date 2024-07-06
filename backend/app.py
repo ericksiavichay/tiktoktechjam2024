@@ -96,6 +96,9 @@ def inpaint_frame():
     mask_base64 = data["mask"]
     prompt = data["prompt"]
     negative_prompt = data["negative_prompt"]
+    guidance = data["guidance"]
+    strength = data["strength"]
+    num_inference_steps = data["iterations"]
 
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -104,7 +107,15 @@ def inpaint_frame():
     mask = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
     inpainted_frame = inpaint(
-        frame, mask, prompt, negative_prompt, TARGET_HEIGHT, TARGET_WIDTH
+        frame,
+        mask,
+        prompt,
+        negative_prompt,
+        TARGET_HEIGHT,
+        TARGET_WIDTH,
+        guidance,
+        strength,
+        num_inference_steps,
     )
     _, buffer = cv2.imencode(".jpg", inpainted_frame)
     inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")

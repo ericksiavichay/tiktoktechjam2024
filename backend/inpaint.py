@@ -169,6 +169,9 @@ def inpaint(
     negative_prompt="",
     height=512,
     width=512,
+    guidance_scale=7.5,
+    strength=1.0,
+    num_inference_steps=50,
     device="cuda",
 ):
     # pipe = StableDiffusionInpaintPipeline.from_pretrained(
@@ -191,8 +194,9 @@ def inpaint(
                 negative_prompt=negative_prompt,
                 height=height,
                 width=width,
-                guidance_scale=12,
-                strength=1.0,
+                guidance_scale=guidance_scale,
+                strength=strength,
+                num_inference_steps=num_inference_steps,
                 output_type="pt",
             ).images[0]
             * 255

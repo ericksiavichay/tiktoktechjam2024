@@ -16,7 +16,7 @@ bash script/install.sh
 mkdir ./ckpt
 pip install gdown
 bash script/download_ckpt.sh
-curl -L -o inpaint.safetensors "https://civitai.com/api/download/models/125821"
+curl -L -o inpaint.safetensors "https://civitai.com/api/download/models/267129"
 
 # Upgrade pip
 pip install --upgrade pip

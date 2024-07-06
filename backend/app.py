@@ -102,7 +102,7 @@ def segment_frame():
         frame_rgb, keypoints, labels, "True"
     )
     refined_merged_mask = segtracker.add_mask(interactive_mask)
-    # mask = (refined_merged_mask[:, :, 1] == 255).astype(np.uint8)
+    mask = (refined_merged_mask[:, :] == 255).astype(np.uint8)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
     keypoints = keypoints.astype(int)

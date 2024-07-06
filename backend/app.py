@@ -96,21 +96,13 @@ def segment_frame():
 
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    prompt = {
-        "points_coord": keypoints,
-        "points_mode": labels,
-        "multimask": "True",
-    }
 
-    predicted_mask, masked_frame = segtracker.seg_acc_click(
-        origin_frame=frame_rgb,
-        coords=prompt["points_coord"],
-        modes=prompt["points_mode"],
-        multimask=prompt["multimask"],
+    interactive_mask = segtracker.sam.segment_with_click(
+        frame_rgb, keypoints, labels, "True"
     )
-    mask = (masked_frame[:, :, 1] == 255).astype(np.uint8)
+    refined_merged_mask = segtracker.add_mask(interactive_mask)
+    mask = (refined_merged_mask[:, :, 1] == 255).astype(np.uint8)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, mask)
 
     keypoints = keypoints.astype(int)

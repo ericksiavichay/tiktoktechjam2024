@@ -167,6 +167,8 @@ def inpaint(
     mask: np.ndarray,
     text_prompt: str,
     negative_prompt="",
+    height=512,
+    width=512,
     device="cuda",
 ):
     # pipe = StableDiffusionInpaintPipeline.from_pretrained(
@@ -180,11 +182,18 @@ def inpaint(
     mask: (H, W)
     """
 
-    img_filled = pipe(
-        prompt=text_prompt,
-        image=Image.fromarray(img),
-        mask_image=Image.fromarray(mask.astype(np.uint8) * 255),
-        negative_prompt=negative_prompt,
-        output_type="np",
-    ).images[0]
+    img_filled = (
+        pipe(
+            prompt=text_prompt,
+            image=Image.fromarray(img),
+            mask_image=Image.fromarray(mask.astype(np.uint8)),
+            negative_prompt=negative_prompt,
+            height=height,
+            width=width,
+            output_type="np",
+        )
+        .images[0]
+        .astype(np.uint8)
+        * 255
+    )
     return img_filled

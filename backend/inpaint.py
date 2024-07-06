@@ -191,10 +191,14 @@ def inpaint(
                 negative_prompt=negative_prompt,
                 height=height,
                 width=width,
+                guidance_scale=12,
+                strength=1.0,
                 output_type="pt",
             ).images[0]
+            * 255
         )
         .cpu()
         .numpy()
-    )
+        .astype(np.uint8)
+    ).transpose(1, 2, 0)
     return img_filled

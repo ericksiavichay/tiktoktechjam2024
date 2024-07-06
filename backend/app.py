@@ -26,7 +26,6 @@ if SERVER == "remote":
 
     from segmentation import (
         SegTracker,
-        seg_acc_click,
         segtracker_args,
         sam_args,
         aot_args,
@@ -54,6 +53,9 @@ if SERVER == "remote":
     # Initialize segmentation tracker
     segtracker = SegTracker(segtracker_args, sam_args, aot_args)
     segtracker.restart_tracker()
+
+    # Initialize inpainting pipeline
+    from inpaint import inpaint
 
 
 def resize_and_crop_frame(frame):
@@ -85,6 +87,27 @@ def blend_mask_with_image(image, mask, color=(0, 255, 0), alpha=0.5):
     color_mask[mask == 255] = color
     blended = cv2.addWeighted(image, 1 - alpha, color_mask, alpha, 0)
     return blended
+
+
+@app.route("/inpaint_frame", methods=["POST"])
+def inpaint_frame():
+    data = request.get_json()
+    frame_base64 = data["frame"]
+    mask_base64 = data["mask"]
+    prompt = data["prompt"]
+    negative_prompt = data["negative_prompt"]
+
+    nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    nparr = np.frombuffer(base64.b64decode(mask_base64), np.uint8)
+    mask = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+
+    inpainted_frame = inpaint(frame, mask, prompt, negative_prompt)
+    _, buffer = cv2.imencode(".jpg", inpainted_frame)
+    inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")
+
+    return jsonify({"inpainted_frame": inpainted_frame_str})
 
 
 @app.route("/segment_frame", methods=["POST"])

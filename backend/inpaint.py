@@ -175,6 +175,10 @@ def inpaint(
     #     low_cpu_mem_usage=False,
     #     safety_checker=None,
     # ).to(device)
+    """
+    img: (H, W, 3)
+    mask: (H, W)
+    """
 
     img_filled = pipe(
         prompt=text_prompt,

@@ -60,7 +60,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Video Frame Selector</h1>
+      <h1>Custom Filters</h1>
       {loading && <div className="loading">{loadingMessage}</div>}
       {!loading && (
         <div className="movie-selection">

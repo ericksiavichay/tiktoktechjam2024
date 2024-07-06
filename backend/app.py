@@ -104,7 +104,7 @@ def inpaint_frame():
     mask = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
     inpainted_frame = inpaint(frame, mask, prompt, negative_prompt)
-    _, buffer = cv2.imencode(".jpg", inpainted_frame)
+    _, buffer = cv2.imencode(".jpg", inpainted_frame.cpu().detach().numpy())
     inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")
 
     return jsonify({"inpainted_frame": inpainted_frame_str})

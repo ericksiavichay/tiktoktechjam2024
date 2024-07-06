@@ -23,44 +23,37 @@ SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
     device = "cuda"
-    from seg_track_anything import SegTracker, init_SegTracker, seg_acc_click
 
-    # Initialize global SegTracker and configurations
-    aot_model = "r50_deaotl"  # Example model, adjust as needed
+    from segmentation import (
+        SegTracker,
+        seg_acc_click,
+        segtracker_args,
+        sam_args,
+        aot_args,
+    )
+
+    from seg_track_anything import aot_model2ckpt, tracking_objects_in_video
+
+    # Initialize SegTracker
+    aot_model = "r50_deaotl"
     long_term_mem = 9999
     max_len_long_term = 9999
     sam_gap = 100
     max_obj_num = 255
     points_per_side = 16
 
-    # Create a dummy frame for initialization
-    dummy_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    segtracker, _, _, _ = init_SegTracker(
-        aot_model,
-        long_term_mem,
-        max_len_long_term,
-        sam_gap,
-        max_obj_num,
-        points_per_side,
-        dummy_frame,
-    )
+    # Initialize SegTracker arguments
+    segtracker_args["sam_gap"] = sam_gap
+    segtracker_args["max_obj_num"] = max_obj_num
+    sam_args["generator_args"]["points_per_side"] = points_per_side
+    aot_args["model"] = aot_model
+    aot_args["model_path"] = aot_model2ckpt[aot_model]
+    aot_args["long_term_mem_gap"] = long_term_mem
+    aot_args["max_len_long_term"] = max_len_long_term
 
-
-def initialize_segtracker_with_frame(frame, keypoints, labels):
-    global segtracker
-    # Convert keypoints and labels to the required format
-    points_coord = np.array(keypoints)
-    points_mode = np.array(labels)
-
-    # Reset the segtracker with the new frame
+    # Initialize segmentation tracker
+    segtracker = SegTracker(segtracker_args, sam_args, aot_args).to(device)
     segtracker.restart_tracker()
-    prompt = {
-        "points_coord": points_coord,
-        "points_mode": points_mode,
-        "multimask": "True",
-    }
-
-    return prompt
 
 
 def resize_and_crop_frame(frame):
@@ -105,11 +98,15 @@ def segment_frame():
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    prompt = initialize_segtracker_with_frame(frame_rgb, keypoints, labels)
+    prompt = {
+        "points_coord": keypoints.tolist(),
+        "points_mode": labels.tolist(),
+        "multimask": "True",
+    }
 
-    masked_frame = seg_acc_click(segtracker, prompt, frame_rgb)
-    blended_frame_bgr = cv2.cvtColor(masked_frame, cv2.COLOR_RGB2BGR)
+    mask, masked_frame = seg_acc_click(segtracker, prompt, frame_rgb)
     mask = (masked_frame[:, :, 1] == 255).astype(np.uint8)
+    blended_frame_bgr = blend_mask_with_image(frame_rgb, mask)
 
     keypoints = keypoints.astype(int)
     for (x, y), label in zip(keypoints, labels):

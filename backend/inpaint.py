@@ -182,9 +182,9 @@ def inpaint(
 
     img_filled = pipe(
         prompt=text_prompt,
-        image=img,
-        mask_image=mask,
+        image=Image.fromarray(img),
+        mask_image=Image.fromarray(mask),
         negative_prompt=negative_prompt,
-        output_type="np.array",
+        output_type="np",
     ).images[0]
     return img_filled

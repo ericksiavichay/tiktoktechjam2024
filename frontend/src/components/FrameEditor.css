@@ -7,13 +7,18 @@
 .tools {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    /* Reduced margin */
 }
 
 .tool-button {
-    margin: 0 10px;
-    padding: 10px;
+    margin: 0 5px;
+    /* Reduced margin */
+    padding: 5px;
+    /* Reduced padding */
     cursor: pointer;
+    font-size: 12px;
+    /* Reduced font size */
 }
 
 .tool-button.selected {
@@ -23,17 +28,25 @@
 .images-container {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .selected-frame,
-.segmented-frame {
-    margin: 10px;
+.blended-frame,
+.mask-frame,
+.inpainted-frame {
+    margin: 5px;
+    /* Reduced margin */
     position: relative;
+    max-width: 250px;
+    /* Fixed width */
 }
 
 .selected-frame img,
-.segmented-frame img {
+.blended-frame img,
+.mask-frame img,
+.inpainted-frame img {
     max-width: 100%;
     height: auto;
 }
@@ -41,20 +54,44 @@
 .star-icon {
     position: absolute;
     pointer-events: none;
+    font-size: 12px;
+    /* Reduced size of star icons */
+}
+
+.prompt-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+    /* Reduced margin */
+}
+
+.prompt {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    /* Reduced margin */
 }
 
 .prompt label {
     font-weight: bold;
-    margin-right: 10px;
+    margin-right: 5px;
+    /* Reduced margin */
     flex: 1;
     text-align: right;
+    font-size: 12px;
+    /* Reduced font size */
 }
 
 .prompt input {
     flex: 2;
-    padding: 8px;
+    padding: 5px;
+    /* Reduced padding */
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 3px;
+    /* Reduced border radius */
     width: 100%;
     box-sizing: border-box;
+    font-size: 12px;
+    /* Reduced font size */
 }

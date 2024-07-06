@@ -11,8 +11,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for development
 
-TARGET_WIDTH = 390
-TARGET_HEIGHT = 844
+TARGET_WIDTH = 8 * 49
+TARGET_HEIGHT = 8 * 111
 MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 30  # Assuming a common FPS; can be adjusted as needed
 

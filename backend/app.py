@@ -103,7 +103,7 @@ def segment_frame():
     )
     refined_merged_mask = segtracker.add_mask(interactive_mask)
     mask = (refined_merged_mask[:, :] == 255).astype(np.uint8)
-    blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
+    blended_frame_bgr = blend_mask_with_image(frame_rgb, mask)
 
     keypoints = keypoints.astype(int)
     for (x, y), label in zip(keypoints, labels):
@@ -120,7 +120,7 @@ def segment_frame():
     _, buffer_blended = cv2.imencode(".jpg", blended_frame_bgr)
     blended_frame_str = base64.b64encode(buffer_blended).decode("utf-8")
 
-    _, buffer_mask = cv2.imencode(".png", refined_merged_mask)
+    _, buffer_mask = cv2.imencode(".png", mask)
     mask_str = base64.b64encode(buffer_mask).decode("utf-8")
 
     return jsonify({"blended_frame": blended_frame_str, "mask": mask_str})

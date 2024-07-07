@@ -48,11 +48,8 @@
 .frame-thumbnail {
   border: 1px solid gray;
   cursor: pointer;
-  width: 117px;
-  /* Proportional to the iPhone 12 resolution for preview */
-  height: 252px;
-  /* Proportional to the iPhone 12 resolution for preview */
   margin: 0 5px;
+  object-fit: contain;
 }
 
 .frame-thumbnail.selected {
@@ -85,4 +82,9 @@
   width: 80%;
   max-width: 800px;
   border: 1px solid gray;
+}
+
+.selected-frame img {
+  max-width: 100%;
+  height: auto;
 }

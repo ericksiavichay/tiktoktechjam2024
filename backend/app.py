@@ -64,22 +64,31 @@ if SERVER == "remote":
 
 def resize_and_crop_frame(frame):
     h, w, _ = frame.shape
+
+    # Calculate the aspect ratio
     aspect_ratio = w / h
 
-    if aspect_ratio > TARGET_WIDTH / TARGET_HEIGHT:
-        new_height = TARGET_HEIGHT
-        new_width = int(aspect_ratio * TARGET_HEIGHT)
+    # Determine new dimensions to be multiples of 8 while maintaining aspect ratio
+    if aspect_ratio > (TARGET_WIDTH / TARGET_HEIGHT):
+        new_height = (TARGET_HEIGHT // 8) * 8
+        new_width = int(aspect_ratio * new_height) // 8 * 8
     else:
-        new_width = TARGET_WIDTH
-        new_height = int(TARGET_WIDTH / aspect_ratio)
+        new_width = (TARGET_WIDTH // 8) * 8
+        new_height = int(new_width / aspect_ratio) // 8 * 8
 
+    # Resize the frame to the new dimensions
     resized_frame = cv2.resize(frame, (new_width, new_height))
+
+    # Calculate the starting coordinates for cropping to center the crop
     start_x = (new_width - TARGET_WIDTH) // 2
     start_y = (new_height - TARGET_HEIGHT) // 2
+
+    # Crop the resized frame to the target dimensions
     cropped_frame = resized_frame[
         start_y : start_y + TARGET_HEIGHT, start_x : start_x + TARGET_WIDTH
     ]
 
+    # Encode the cropped frame as a base64 string
     _, buffer = cv2.imencode(".jpg", cropped_frame)
     frame_str = base64.b64encode(buffer).decode("utf-8")
     return frame_str
@@ -134,9 +143,6 @@ def segment_frame():
     keypoints = np.array(data["keypoints"])
     labels = np.array(data["labels"])
 
-    print("Received keypoints:", keypoints)  # Debug line
-    print("Received labels:", labels)  # Debug line
-
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -144,7 +150,6 @@ def segment_frame():
     # Get the actual dimensions of the frame
     actual_height, actual_width, _ = frame.shape
 
-    # Scale the keypoints
     # Scale the keypoints to match the frame dimensions
     keypoints[:, 0] = keypoints[:, 0] * (actual_width / TARGET_WIDTH)
     keypoints[:, 1] = keypoints[:, 1] * (actual_height / TARGET_HEIGHT)
@@ -157,7 +162,6 @@ def segment_frame():
 
     keypoints = keypoints.astype(int)
     for (x, y), label in zip(keypoints, labels):
-        print(f"Drawing marker at ({x}, {y}) with label {label}")  # Debug line
         color = (0, 255, 0) if label == 1 else (0, 0, 255)
         cv2.drawMarker(
             blended_frame_bgr,

@@ -6,6 +6,7 @@ const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function FrameEditor({ frame }) {
     const [keypoints, setKeypoints] = useState([]);
+    const [labels, setLabels] = useState([]);
     const [selectedTool, setSelectedTool] = useState('positive');
     const [blendedFrame, setBlendedFrame] = useState(null);
     const [mask, setMask] = useState(null);
@@ -17,16 +18,21 @@ function FrameEditor({ frame }) {
     const [iterations, setIterations] = useState(50);
 
     const handleMouseClick = (e) => {
-        const rect = e.target.getBoundingClientRect();
-        const x = Math.floor(e.clientX - rect.left);
-        const y = Math.floor(e.clientY - rect.top);
-
-        console.log('Clicked at:', x, y);
-
+        const img = e.target;
+        const rect = img.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         const newKeypoint = [x, y];
 
+        if (selectedTool === 'positive') {
+            setLabels([...labels, 'positive']);
+        } else {
+            setLabels([...labels, 'negative']);
+        }
         setKeypoints([...keypoints, newKeypoint]);
     };
+
+
 
     const handleClearKeypoints = () => {
         setKeypoints([]);
@@ -177,8 +183,8 @@ function FrameEditor({ frame }) {
                         <FaStar
                             key={index}
                             className="star-icon"
-                            color={selectedTool === 'positive' ? 'green' : 'red'}
-                            style={{ top: kp[1], left: kp[0] }}
+                            color={labels[index] === 'positive' ? 'green' : 'red'}
+                            style={{ top: `${kp[1]}px`, left: `${kp[0]}px` }}
                         />
                     ))}
                 </div>

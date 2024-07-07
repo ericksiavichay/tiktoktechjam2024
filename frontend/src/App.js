@@ -9,13 +9,13 @@ const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
 function App() {
   const [movies, setMovies] = useState([]);
   const [frames, setFrames] = useState([]);
-  const [segmentedFrames, setSegmentedFrames] = useState([]);
-  const [inpaintedVideo, setInpaintedVideo] = useState(null);
-  const [selectedFrame, setSelectedFrame] = useState(null); // This will be set to the first frame
+  const [selectedFrame, setSelectedFrame] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [totalFrames, setTotalFrames] = useState(0);
+  const [segmentedFrames, setSegmentedFrames] = useState([]);
+  const [inpaintedVideo, setInpaintedVideo] = useState(null);
 
   useEffect(() => {
     const fetchMovies = async () => {

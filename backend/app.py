@@ -5,7 +5,8 @@ import base64
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-import sys
+import torch
+import gc
 
 load_dotenv()
 app = Flask(__name__)
@@ -203,25 +204,45 @@ def segment_video():
     try:
         init_frame = decoded_frames[0]
         init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
+        init_frame_tensor = (
+            torch.tensor(init_frame_rgb, dtype=torch.float32).cuda() / 255.0
+        )
 
         segtracker = SegTracker(segtracker_args, sam_args, aot_args)
         segtracker.restart_tracker()
         interactive_mask = segtracker.sam.segment_with_click(
-            init_frame_rgb, keypoints, labels, "True"
+            init_frame_tensor.half(), keypoints, labels, "True"
         )
         refined_merged_mask = segtracker.add_mask(interactive_mask)
         segtracker = SegTracker_add_first_frame(
-            segtracker, init_frame_rgb, refined_merged_mask
+            segtracker, init_frame_tensor.half(), refined_merged_mask
         )
 
         display_segmented_frames = []
+        sam_gap = segtracker.sam_gap
         for i, frame in enumerate(decoded_frames):
             app.logger.info(f"Segmenting frame {i+1}/{len(decoded_frames)}")
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_tensor = torch.tensor(frame_rgb, dtype=torch.float32).cuda() / 255.0
             if i == 0:
                 pred_mask = refined_merged_mask
+                torch.cuda.empty_cache()
+                gc.collect()
+            elif i % sam_gap == 0:
+                with torch.cuda.amp.autocast():
+                    pred_mask = segtracker.track(frame_tensor.half())
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    track_mask = segtracker.track(frame_tensor.half())
+                    new_obj_mask = segtracker.find_new_objs(track_mask, pred_mask)
+                    pred_mask = track_mask + new_obj_mask
+                    segtracker.add_reference_frame(frame_tensor.half(), pred_mask)
             else:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                pred_mask = segtracker.track(frame_rgb, update_memory=True)
+                pred_mask = segtracker.track(frame_tensor.half(), update_memory=True)
+
+            torch.cuda.empty_cache()
+            gc.collect()
+
             _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
             mask_str = base64.b64encode(buffer_mask).decode("utf-8")
             display_segmented_frames.append(mask_str)

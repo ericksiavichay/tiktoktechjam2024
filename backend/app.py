@@ -223,14 +223,13 @@ def segment_video():
             if i == 0:
                 pred_mask = segtracker.first_frame_mask
             elif i % sam_gap == 0:
-                with torch.cuda.amp.autocast():
-                    seg_mask = segtracker.seg(frame_rgb)
-                    pred_mask = segtracker.track(frame_rgb)
-                    torch.cuda.empty_cache()
-                    gc.collect()
-                    new_obj_mask = segtracker.find_new_objs(track_mask, pred_mask)
-                    pred_mask = track_mask + new_obj_mask
-                    segtracker.add_reference_frame(frame_rgb, pred_mask)
+                seg_mask = segtracker.seg(frame_rgb)
+                track_mask = segtracker.track(frame_rgb)
+                torch.cuda.empty_cache()
+                gc.collect()
+                new_obj_mask = segtracker.find_new_objs(track_mask, seg_mask)
+                pred_mask = track_mask + new_obj_mask
+                segtracker.add_reference_frame(frame_rgb, pred_mask)
             else:
                 pred_mask = segtracker.track(frame_rgb, update_memory=True)
 

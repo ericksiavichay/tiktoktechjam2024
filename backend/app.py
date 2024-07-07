@@ -134,6 +134,9 @@ def segment_frame():
     keypoints = np.array(data["keypoints"])
     labels = np.array(data["labels"])
 
+    print("Received keypoints:", keypoints)  # Debug line
+    print("Received labels:", labels)  # Debug line
+
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -142,7 +145,6 @@ def segment_frame():
         frame_rgb, keypoints, labels, "True"
     )
     refined_merged_mask = segtracker.add_mask(interactive_mask)
-    # mask = (refined_merged_mask[:, :] == 255).astype(np.uint8)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
     keypoints = keypoints.astype(int)

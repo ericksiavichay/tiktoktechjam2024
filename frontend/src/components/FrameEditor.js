@@ -57,7 +57,7 @@ function FrameEditor({ frame }) {
                 },
                 body: JSON.stringify({
                     frame,  // Ensure frame is a base64 encoded string
-                    keypoints: keypoints.map(kp => [kp.x, kp.y]),
+                    keypoints: keypoints.map(kp => ({ x: kp.x, y: kp.y })), // Fix keypoint format
                     labels: keypoints.map(kp => (kp.type === 'positive' ? 1 : 0)),
                 }),
             });

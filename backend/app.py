@@ -198,8 +198,8 @@ def segment_video():
     if not decoded_frames:
         return jsonify({"error": "No frames available for segmentation"}), 400
 
-    print("Received keypoints:", keypoints)  # Debugging line
-    print("Received labels:", labels)  # Debugging line
+    print("Received keypoints in segment video:", keypoints)  # Debugging line
+    print("Received labels in segment video:", labels)  # Debugging line
 
     try:
         init_frame = decoded_frames[0]

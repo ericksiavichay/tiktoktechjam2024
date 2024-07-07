@@ -115,6 +115,7 @@ def inpaint_frame():
 
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     nparr = np.frombuffer(base64.b64decode(mask_base64), np.uint8)
     mask = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
@@ -188,8 +189,8 @@ def segment_video():
         print("Invalid request payload:", data)  # Debugging line
         return jsonify({"error": "Invalid request payload"}), 400
 
-    keypoints = np.array(data["keypoints"]).astype(np.half)
-    labels = np.array(data["labels"]).astype(np.half)
+    keypoints = np.array(data["keypoints"]).astype(int)
+    labels = np.array(data["labels"]).astype(int)
     frames = data["frames"]
 
     decoded_frames = [
@@ -205,7 +206,7 @@ def segment_video():
 
     try:
         init_frame = decoded_frames[0]
-        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB).astype(np.half)
+        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
 
         segtracker = SegTracker(segtracker_args, sam_args, aot_args)
         segtracker.restart_tracker()

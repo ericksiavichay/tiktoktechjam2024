@@ -21,6 +21,8 @@ function FrameEditor({ frame }) {
         const x = Math.floor(e.clientX - rect.left);
         const y = Math.floor(e.clientY - rect.top);
 
+        console.log('Clicked at:', x, y);
+
         const newKeypoint = [x, y];
 
         setKeypoints([...keypoints, newKeypoint]);

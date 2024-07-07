@@ -141,14 +141,22 @@ def segment_frame():
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+    # Get the actual dimensions of the frame
+    actual_height, actual_width, _ = frame.shape
+
+    # Scale the keypoints
+    scaled_keypoints = keypoints * np.array(
+        [TARGET_WIDTH / actual_width, TARGET_HEIGHT / actual_height]
+    )
+
     interactive_mask = segtracker.sam.segment_with_click(
-        frame_rgb, keypoints, labels, "True"
+        frame_rgb, scaled_keypoints, labels, "True"
     )
     refined_merged_mask = segtracker.add_mask(interactive_mask)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
     keypoints = keypoints.astype(int)
-    for (x, y), label in zip(keypoints, labels):
+    for (x, y), label in zip(scaled_keypoints, labels):
         print(f"Drawing marker at ({x}, {y}) with label {label}")  # Debug line
         color = (0, 255, 0) if label == 1 else (0, 0, 255)
         cv2.drawMarker(

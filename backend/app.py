@@ -204,6 +204,8 @@ def segment_video():
         init_frame = decoded_frames[0]
         init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
 
+        segtracker = SegTracker(segtracker_args, sam_args, aot_args)
+        segtracker.restart_tracker()
         interactive_mask = segtracker.sam.segment_with_click(
             init_frame_rgb, keypoints, labels, "True"
         )

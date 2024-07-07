@@ -205,7 +205,8 @@ def segment_video():
         init_frame = decoded_frames[0]
         init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
         init_frame_tensor = (
-            torch.tensor(init_frame_rgb, dtype=torch.float32).cuda() / 255.0
+            torch.tensor(init_frame_rgb, dtype=torch.float32).permute(2, 0, 1).cuda()
+            / 255.0
         )
 
         segtracker = SegTracker(segtracker_args, sam_args, aot_args)

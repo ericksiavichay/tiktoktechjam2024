@@ -5,8 +5,7 @@ import base64
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-import torch
-import gc
+
 
 load_dotenv()
 app = Flask(__name__)
@@ -24,6 +23,9 @@ SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
     device = "cuda"
+
+    import torch
+    import gc
 
     from segmentation import (
         SegTracker,
@@ -186,8 +188,8 @@ def segment_video():
         print("Invalid request payload:", data)  # Debugging line
         return jsonify({"error": "Invalid request payload"}), 400
 
-    keypoints = np.array(data["keypoints"]).astype(int)
-    labels = np.array(data["labels"])
+    keypoints = np.array(data["keypoints"]).astype(np.half)
+    labels = np.array(data["labels"]).astype(np.half)
     frames = data["frames"]
 
     decoded_frames = [
@@ -203,7 +205,7 @@ def segment_video():
 
     try:
         init_frame = decoded_frames[0]
-        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
+        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB).astype(np.half)
 
         segtracker = SegTracker(segtracker_args, sam_args, aot_args)
         segtracker.restart_tracker()
@@ -219,7 +221,7 @@ def segment_video():
         sam_gap = segtracker.sam_gap
         for i, frame in enumerate(decoded_frames):
             app.logger.info(f"Segmenting frame {i+1}/{len(decoded_frames)}")
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).astype(np.half)
             if i == 0:
                 pred_mask = segtracker.first_frame_mask
             elif i % sam_gap == 0:

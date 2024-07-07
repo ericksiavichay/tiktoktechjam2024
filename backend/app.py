@@ -131,8 +131,8 @@ def inpaint_frame():
 def segment_frame():
     data = request.get_json()
     frame_base64 = data["frame"]
-    keypoints = np.array(data["keypoints"], dtype=np.int32)
-    labels = np.array(data["labels"], dtype=np.int32)
+    keypoints = np.array(data["keypoints"])
+    labels = np.array(data["labels"])
 
     print("Received keypoints:", keypoints)  # Debug line
     print("Received labels:", labels)  # Debug line
@@ -145,9 +145,9 @@ def segment_frame():
     actual_height, actual_width, _ = frame.shape
 
     # Scale the keypoints
-    scaled_keypoints = keypoints * np.array(
-        [TARGET_WIDTH / actual_width, TARGET_HEIGHT / actual_height]
-    )
+    # Scale the keypoints to match the frame dimensions
+    keypoints[:, 0] = keypoints[:, 0] * (actual_width / TARGET_WIDTH)
+    keypoints[:, 1] = keypoints[:, 1] * (actual_height / TARGET_HEIGHT)
 
     interactive_mask = segtracker.sam.segment_with_click(
         frame_rgb, scaled_keypoints, labels, "True"

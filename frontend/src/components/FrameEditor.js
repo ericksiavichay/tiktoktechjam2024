@@ -18,8 +18,8 @@ function FrameEditor({ frame }) {
 
     const handleMouseClick = (e) => {
         const rect = e.target.getBoundingClientRect();
-        const x = Math.round(e.clientX - rect.left);
-        const y = Math.round(e.clientY - rect.top);
+        const x = Math.floor(e.clientX - rect.left);
+        const y = Math.floor(e.clientY - rect.top);
 
         const newKeypoint = [x, y];
 

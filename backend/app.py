@@ -131,8 +131,11 @@ def inpaint_frame():
 def segment_frame():
     data = request.get_json()
     frame_base64 = data["frame"]
-    keypoints = np.array(data["keypoints"]).astype(int)
-    labels = np.array(data["labels"])
+    keypoints = np.array(data["keypoints"], dtype=np.int32)
+    labels = np.array(data["labels"], dtype=np.int32)
+
+    print("Received keypoints:", keypoints)  # Debug line
+    print("Received labels:", labels)  # Debug line
 
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -144,9 +147,9 @@ def segment_frame():
     refined_merged_mask = segtracker.add_mask(interactive_mask)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
-    print("Received keypoints:", keypoints)  # Debug line
-    print("Received labels:", labels)  # Debug line
+    keypoints = keypoints.astype(int)
     for (x, y), label in zip(keypoints, labels):
+        print(f"Drawing marker at ({x}, {y}) with label {label}")  # Debug line
         color = (0, 255, 0) if label == 1 else (0, 0, 255)
         cv2.drawMarker(
             blended_frame_bgr,

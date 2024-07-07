@@ -5,6 +5,7 @@ import './App.css';
 
 const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
 const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
+const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function App() {
   const [movies, setMovies] = useState([]);
@@ -58,7 +59,7 @@ function App() {
     setLoading(true);
     setLoadingMessage('Segmenting video...');
     try {
-      const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/segment_video`, {
+      const response = await fetch(`${REMOTE_HOST}/segment_video`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ function App() {
     setLoading(true);
     setLoadingMessage('Inpainting video...');
     try {
-      const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/inpaint_video`, {
+      const response = await fetch(`${REMOTE_HOST}/inpaint_video`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

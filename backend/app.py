@@ -185,6 +185,10 @@ def segment_frame():
 def segment_video():
     global FRAMES
     global SEGMENTED_FRAMES
+
+    if not FRAMES:
+        return jsonify({"error": "No frames available for segmentation"}), 400
+
     data = request.get_json()
     keypoints = np.array(data["keypoints"])
     labels = np.array(data["labels"])
@@ -254,6 +258,7 @@ def get_movie_frames(filename):
             app.logger.error("Error opening video file")
             return jsonify({"error": "Error opening video file"}), 400
 
+        global FRAMES
         FRAMES = []
         count = 0
         total_frames = min(int(video.get(cv2.CAP_PROP_FRAME_COUNT)), MAX_DURATION * FPS)

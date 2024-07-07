@@ -67,7 +67,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ keypoints: keypoints, labels: labels }), // Update with actual keypoints and labels if necessary
+        body: JSON.stringify({ keypoints: keypoints, labels: labels, frames: frames }), // Update with actual keypoints and labels if necessary
       });
 
       if (!response.ok) {

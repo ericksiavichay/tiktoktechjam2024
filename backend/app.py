@@ -21,9 +21,6 @@ LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
 LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
 SERVER = os.getenv("SERVER", "local")
 
-FRAMES = []
-SEGMENTED_FRAMES = []
-
 if SERVER == "remote":
     device = "cuda"
 
@@ -183,12 +180,6 @@ def segment_frame():
 
 @app.route("/segment_video", methods=["POST"])
 def segment_video():
-    global FRAMES
-    global SEGMENTED_FRAMES
-
-    if not FRAMES:
-        return jsonify({"error": "No frames available for segmentation"}), 400
-
     data = request.get_json()
     if not data or "keypoints" not in data or "labels" not in data:
         print("Invalid request payload:", data)  # Debugging line
@@ -196,12 +187,21 @@ def segment_video():
 
     keypoints = np.array(data["keypoints"])
     labels = np.array(data["labels"])
+    frames = data["frames"]
+
+    decoded_frames = [
+        cv2.imdecode(np.frombuffer(base64.b64decode(frame), np.uint8), cv2.IMREAD_COLOR)
+        for frame in frames
+    ]
+
+    if not decoded_frames:
+        return jsonify({"error": "No frames available for segmentation"}), 400
 
     print("Received keypoints:", keypoints)  # Debugging line
     print("Received labels:", labels)  # Debugging line
 
     try:
-        init_frame = FRAMES[0]
+        init_frame = decoded_frames[0]
         init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
 
         interactive_mask = segtracker.sam.segment_with_click(
@@ -213,14 +213,13 @@ def segment_video():
         )
 
         display_segmented_frames = []
-        for i, frame in enumerate(FRAMES):
-            app.logger.info(f"Segmenting frame {i+1}/{len(FRAMES)}")
+        for i, frame in enumerate(decoded_frames):
+            app.logger.info(f"Segmenting frame {i+1}/{len(decoded_frames)}")
             if i == 0:
                 pred_mask = refined_merged_mask
             else:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pred_mask = segtracker.track(frame_rgb, update_memory=True)
-            SEGMENTED_FRAMES.append(pred_mask)
             _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
             mask_str = base64.b64encode(buffer_mask).decode("utf-8")
             display_segmented_frames.append(mask_str)
@@ -269,8 +268,7 @@ def get_movie_frames(filename):
             app.logger.error("Error opening video file")
             return jsonify({"error": "Error opening video file"}), 400
 
-        global FRAMES
-        FRAMES = []
+        frames = []
         count = 0
         total_frames = min(int(video.get(cv2.CAP_PROP_FRAME_COUNT)), MAX_DURATION * FPS)
 
@@ -279,14 +277,14 @@ def get_movie_frames(filename):
             if not ret:
                 break
             frame_str = resize_and_crop_frame(frame)
-            FRAMES.append(frame_str)
+            frames.append(frame_str)
             count += 1
 
             app.logger.info(f"Processed frame {count}/{total_frames}")
 
         video.release()
         app.logger.info("Video processing complete")
-        return jsonify({"frames": FRAMES, "total_frames": total_frames})
+        return jsonify({"frames": frames, "total_frames": total_frames})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

@@ -212,7 +212,7 @@ def segment_video():
         )
         refined_merged_mask = segtracker.add_mask(interactive_mask)
         segtracker = SegTracker_add_first_frame(
-            segtracker, init_frame_tensor.half(), refined_merged_mask
+            segtracker, init_frame_rgb, refined_merged_mask
         )
 
         display_segmented_frames = []
@@ -220,22 +220,19 @@ def segment_video():
         for i, frame in enumerate(decoded_frames):
             app.logger.info(f"Segmenting frame {i+1}/{len(decoded_frames)}")
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_tensor = torch.tensor(frame_rgb, dtype=torch.float32).cuda() / 255.0
             if i == 0:
-                pred_mask = refined_merged_mask
-                torch.cuda.empty_cache()
-                gc.collect()
+                pred_mask = segtracker.first_frame_mask
             elif i % sam_gap == 0:
                 with torch.cuda.amp.autocast():
-                    pred_mask = segtracker.track(frame_tensor.half())
+                    seg_mask = segtracker.seg(frame_rgb)
+                    pred_mask = segtracker.track(frame_rgb)
                     torch.cuda.empty_cache()
                     gc.collect()
-                    track_mask = segtracker.track(frame_tensor.half())
                     new_obj_mask = segtracker.find_new_objs(track_mask, pred_mask)
                     pred_mask = track_mask + new_obj_mask
-                    segtracker.add_reference_frame(frame_tensor.half(), pred_mask)
+                    segtracker.add_reference_frame(frame_rgb, pred_mask)
             else:
-                pred_mask = segtracker.track(frame_tensor.half(), update_memory=True)
+                pred_mask = segtracker.track(frame_rgb, update_memory=True)
 
             torch.cuda.empty_cache()
             gc.collect()

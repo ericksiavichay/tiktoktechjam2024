@@ -59,6 +59,9 @@ function App() {
     setLoading(true);
     setLoadingMessage('Segmenting video...');
     try {
+      console.log('Sending keypoints:', keypoints);  // Debugging line
+      console.log('Sending labels:', labels);  // Debugging line
+
       const response = await fetch(`${REMOTE_HOST}/segment_video`, {
         method: 'POST',
         headers: {
@@ -66,6 +69,13 @@ function App() {
         },
         body: JSON.stringify({ keypoints: keypoints, labels: labels }), // Update with actual keypoints and labels if necessary
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error segmenting video:', errorData.error);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       setSegmentedFrames(data.segmented_frames || []);
     } catch (error) {
@@ -73,6 +83,7 @@ function App() {
     }
     setLoading(false);
   };
+
 
   const handleInpaintVideo = async () => {
     setLoading(true);

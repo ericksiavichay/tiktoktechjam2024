@@ -190,34 +190,45 @@ def segment_video():
         return jsonify({"error": "No frames available for segmentation"}), 400
 
     data = request.get_json()
+    if not data or "keypoints" not in data or "labels" not in data:
+        print("Invalid request payload:", data)  # Debugging line
+        return jsonify({"error": "Invalid request payload"}), 400
+
     keypoints = np.array(data["keypoints"])
     labels = np.array(data["labels"])
 
-    init_frame = FRAMES[0]
-    init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
+    print("Received keypoints:", keypoints)  # Debugging line
+    print("Received labels:", labels)  # Debugging line
 
-    interactive_mask = segtracker.sam.segment_with_click(
-        init_frame_rgb, keypoints, labels, "True"
-    )
-    refined_merged_mask = segtracker.add_mask(interactive_mask)
-    segtracker = SegTracker_add_first_frame(
-        segtracker, init_frame_rgb, refined_merged_mask
-    )
+    try:
+        init_frame = FRAMES[0]
+        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
 
-    display_segmented_frames = []
-    for i, frame in enumerate(FRAMES):
-        app.logger.info(f"Segmenting frame {i+1}/{len(FRAMES)}")
-        if i == 0:
-            pred_mask = refined_merged_mask
-        else:
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            pred_mask = segtracker.track(frame_rgb, update_memory=True)
-        SEGMENTED_FRAMES.append(pred_mask)
-        _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
-        mask_str = base64.b64encode(buffer_mask).decode("utf-8")
-        display_segmented_frames.append(mask_str)
+        interactive_mask = segtracker.sam.segment_with_click(
+            init_frame_rgb, keypoints, labels, "True"
+        )
+        refined_merged_mask = segtracker.add_mask(interactive_mask)
+        segtracker = SegTracker_add_first_frame(
+            segtracker, init_frame_rgb, refined_merged_mask
+        )
 
-    return jsonify({"segmented_frames": display_segmented_frames})
+        display_segmented_frames = []
+        for i, frame in enumerate(FRAMES):
+            app.logger.info(f"Segmenting frame {i+1}/{len(FRAMES)}")
+            if i == 0:
+                pred_mask = refined_merged_mask
+            else:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                pred_mask = segtracker.track(frame_rgb, update_memory=True)
+            SEGMENTED_FRAMES.append(pred_mask)
+            _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
+            mask_str = base64.b64encode(buffer_mask).decode("utf-8")
+            display_segmented_frames.append(mask_str)
+
+        return jsonify({"segmented_frames": display_segmented_frames})
+    except Exception as e:
+        print("Error during segmentation:", str(e))  # Debugging line
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/movies", methods=["GET"])

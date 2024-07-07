@@ -65,3 +65,24 @@
   align-items: center;
   padding: 10px 0;
 }
+
+.video-buttons {
+  margin-top: 20px;
+}
+
+.video-buttons button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.inpainted-video {
+  margin-top: 20px;
+}
+
+.inpainted-video video {
+  width: 80%;
+  max-width: 800px;
+  border: 1px solid gray;
+}

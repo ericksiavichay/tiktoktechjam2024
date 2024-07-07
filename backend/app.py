@@ -21,12 +21,16 @@ LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
 LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
 SERVER = os.getenv("SERVER", "local")
 
+FRAMES = []
+SEGMENTED_FRAMES = []
+
 if SERVER == "remote":
     device = "cuda"
 
     from segmentation import (
         SegTracker,
         segtracker_args,
+        SegTracker_add_first_frame,
         sam_args,
         aot_args,
     )
@@ -162,6 +166,41 @@ def segment_frame():
     return jsonify({"blended_frame": blended_frame_str, "mask": mask_str})
 
 
+@app.route("/segment_video", methods=["POST"])
+def segment_video():
+    global FRAMES
+    global SEGMENTED_FRAMES
+    data = request.get_json()
+    keypoints = np.array(data["keypoints"])
+    labels = np.array(data["labels"])
+
+    init_frame = FRAMES[0]
+    init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
+
+    interactive_mask = segtracker.sam.segment_with_click(
+        init_frame_rgb, keypoints, labels, "True"
+    )
+    refined_merged_mask = segtracker.add_mask(interactive_mask)
+    segtracker = SegTracker_add_first_frame(
+        segtracker, init_frame_rgb, refined_merged_mask
+    )
+
+    display_segmented_frames = []
+    for i, frame in enumerate(FRAMES):
+        app.logger.info(f"Segmenting frame {i+1}/{len(FRAMES)}")
+        if i == 0:
+            pred_mask = refined_merged_mask
+        else:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pred_mask = segtracker.track(frame_rgb, update_memory=True)
+        SEGMENTED_FRAMES.append(pred_mask)
+        _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
+        mask_str = base64.b64encode(buffer_mask).decode("utf-8")
+        display_segmented_frames.append(mask_str)
+
+    return jsonify({"segmented_frames": display_segmented_frames})
+
+
 @app.route("/movies", methods=["GET"])
 def list_movies():
     try:
@@ -200,7 +239,7 @@ def get_movie_frames(filename):
             app.logger.error("Error opening video file")
             return jsonify({"error": "Error opening video file"}), 400
 
-        frames = []
+        FRAMES = []
         count = 0
         total_frames = min(int(video.get(cv2.CAP_PROP_FRAME_COUNT)), MAX_DURATION * FPS)
 
@@ -209,14 +248,14 @@ def get_movie_frames(filename):
             if not ret:
                 break
             frame_str = resize_and_crop_frame(frame)
-            frames.append(frame_str)
+            FRAMES.append(frame_str)
             count += 1
 
             app.logger.info(f"Processed frame {count}/{total_frames}")
 
         video.release()
         app.logger.info("Video processing complete")
-        return jsonify({"frames": frames, "total_frames": total_frames})
+        return jsonify({"frames": FRAMES, "total_frames": total_frames})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

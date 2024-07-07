@@ -5,13 +5,13 @@ import './App.css';
 
 const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
 const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
-const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
 function App() {
   const [movies, setMovies] = useState([]);
   const [frames, setFrames] = useState([]);
-  const [selectedFrame, setSelectedFrame] = useState(null);
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState(null);
+  const [segmentedFrames, setSegmentedFrames] = useState([]);
+  const [inpaintedVideo, setInpaintedVideo] = useState(null);
+  const [selectedFrame, setSelectedFrame] = useState(null); // This will be set to the first frame
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -22,7 +22,7 @@ function App() {
       try {
         const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/movies`);
         const data = await response.json();
-        setMovies(data.movies);
+        setMovies(data.movies || []);
       } catch (error) {
         console.error('Error fetching movies:', error);
       }
@@ -40,12 +40,11 @@ function App() {
       const data = await response.json();
       const totalFrames = data.total_frames;
       setTotalFrames(totalFrames);
-      setFrames(data.frames);
+      setFrames(data.frames || []);
 
       // Automatically select the first frame
-      if (data.frames.length > 0) {
-        setSelectedFrame(data.frames[0]);
-        setSelectedFrameIndex(0);
+      if (data.frames && data.frames.length > 0) {
+        setSelectedFrame(data.frames[0]); // Set the first frame as selected
       }
     } catch (error) {
       console.error('Error loading movie frames:', error);
@@ -53,9 +52,42 @@ function App() {
     setLoading(false);
   };
 
-  const handleFrameSelect = (frame, index) => {
-    setSelectedFrame(frame);
-    setSelectedFrameIndex(index);
+  const handleSegmentVideo = async () => {
+    setLoading(true);
+    setLoadingMessage('Segmenting video...');
+    try {
+      const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/segment_video`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keypoints: [], labels: [] }), // Update with actual keypoints and labels if necessary
+      });
+      const data = await response.json();
+      setSegmentedFrames(data.segmented_frames || []);
+    } catch (error) {
+      console.error('Error segmenting video:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleInpaintVideo = async () => {
+    setLoading(true);
+    setLoadingMessage('Inpainting video...');
+    try {
+      const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/inpaint_video`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ keypoints: [], labels: [] }), // Update with actual keypoints and labels if necessary
+      });
+      const data = await response.json();
+      setInpaintedVideo(data.inpainted_video || null);
+    } catch (error) {
+      console.error('Error inpainting video:', error);
+    }
+    setLoading(false);
   };
 
   return (
@@ -81,13 +113,35 @@ function App() {
       {!loading && frames.length > 0 && (
         <FrameSlider
           frames={frames}
-          onSelectFrame={handleFrameSelect}
-          selectedFrameIndex={selectedFrameIndex}
+          onSelectFrame={() => { }} // Disable frame selection
+          selectedFrameIndex={0} // Always keep the first frame selected
           totalFrames={totalFrames}
         />
       )}
       {!loading && selectedFrame && (
-        <FrameEditor frame={selectedFrame} frameIndex={selectedFrameIndex} totalFrames={totalFrames} />
+        <FrameEditor frame={selectedFrame} frameIndex={0} totalFrames={totalFrames} />
+      )}
+      {!loading && (
+        <div className="video-buttons">
+          <button onClick={handleSegmentVideo}>Segment Video</button>
+          <button onClick={handleInpaintVideo}>Inpaint Video</button>
+        </div>
+      )}
+      {!loading && segmentedFrames.length > 0 && (
+        <FrameSlider
+          frames={segmentedFrames}
+          onSelectFrame={() => { }} // Disable frame selection
+          selectedFrameIndex={0} // Always keep the first frame selected
+          totalFrames={segmentedFrames.length}
+        />
+      )}
+      {!loading && inpaintedVideo && (
+        <div className="inpainted-video">
+          <h2>Inpainted Video</h2>
+          <video controls>
+            <source src={`data:video/mp4;base64,${inpaintedVideo}`} type="video/mp4" />
+          </video>
+        </div>
       )}
     </div>
   );

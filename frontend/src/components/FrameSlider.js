@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './FrameSlider.css';
 
-function FrameSlider({ frames, onSelectFrame, selectedFrameIndex, totalFrames }) {
+function FrameSlider({ frames, selectedFrameIndex, totalFrames }) {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const handleLeftClick = () => {
@@ -25,7 +25,6 @@ function FrameSlider({ frames, onSelectFrame, selectedFrameIndex, totalFrames })
                     <div
                         key={index}
                         className={`frame-thumbnail ${selectedFrameIndex === currentIndex + index ? 'selected' : ''}`}
-                        onClick={() => onSelectFrame(frame, currentIndex + index)}
                     >
                         <img src={`data:image/jpeg;base64,${frame}`} alt={`Frame ${currentIndex + index + 1}`} />
                     </div>

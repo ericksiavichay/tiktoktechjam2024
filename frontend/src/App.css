@@ -2,89 +2,115 @@
   text-align: center;
 }
 
-.loading {
-  font-size: 24px;
-  margin-top: 20px;
-}
-
 .movie-selection {
-  margin-top: 20px;
+  margin: 20px;
 }
 
 .movie-list {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .movie-item {
+  cursor: pointer;
   margin: 10px;
   padding: 10px;
-  border: 1px solid gray;
-  cursor: pointer;
-  width: 200px;
-  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.movie-item:hover {
+  background-color: #f0f0f0;
 }
 
 .movie-item.selected {
-  border: 2px solid green;
+  background-color: #ddd;
 }
 
-.frame-slider-container {
+.loading {
+  margin: 20px;
+  font-size: 1.5em;
+  color: #666;
+}
+
+.images-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 20px;
+  gap: 10px;
+  /* Reduce the spacing between images */
+  flex-wrap: wrap;
+}
+
+.frame-editor {
+  text-align: center;
+}
+
+.tool-button {
+  margin: 10px;
+}
+
+.prompts {
+  margin: 20px;
+}
+
+.prompts .prompt {
+  margin: 10px 0;
+}
+
+.selected-frame {
+  position: relative;
+  display: inline-block;
+}
+
+.selected-frame img,
+.blended-frame img,
+.mask-frame img,
+.inpainted-frame img {
+  display: block;
+  max-width: none;
+  width: auto;
+  height: auto;
+}
+
+.star-icon {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+
+/* .blended-frame,
+.mask-frame,
+.inpainted-frame {
+  margin: 10px;
+} */
+
+.frame-slider-container {
+  margin: 20px;
+  text-align: center;
 }
 
 .frame-display {
   display: flex;
-  overflow-x: auto;
-  width: 100%;
   justify-content: center;
-  padding: 10px 0;
+  align-items: center;
 }
 
 .frame-thumbnail {
-  border: 1px solid gray;
-  cursor: pointer;
-  margin: 0 5px;
-  object-fit: contain;
+  margin: 5px;
+  border: 1px solid #ccc;
+  transition: border-color 0.3s;
 }
 
 .frame-thumbnail.selected {
-  border: 2px solid blue;
+  border-color: #000;
 }
 
 .slider-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 0;
-}
-
-.video-buttons {
-  margin-top: 20px;
-}
-
-.video-buttons button {
-  margin: 0 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.inpainted-video {
-  margin-top: 20px;
-}
-
-.inpainted-video video {
-  width: 80%;
-  max-width: 800px;
-  border: 1px solid gray;
-}
-
-.selected-frame img {
-  max-width: 100%;
-  height: auto;
+  margin-top: 10px;
 }

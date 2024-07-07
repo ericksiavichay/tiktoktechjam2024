@@ -11,8 +11,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for development
 
-TARGET_WIDTH = 8 * 49
-TARGET_HEIGHT = 8 * 111
+TARGET_WIDTH = 8 * 25
+TARGET_HEIGHT = 8 * 56
 MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 30  # Assuming a common FPS; can be adjusted as needed
 
@@ -130,7 +130,7 @@ def inpaint_frame():
         strength,
         num_inference_steps,
     )
-    _, buffer = cv2.imencode(".jpg", inpainted_frame)
+    _, buffer = cv2.imencode(".png", inpainted_frame)
     inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")
 
     return jsonify({"inpainted_frame": inpainted_frame_str})

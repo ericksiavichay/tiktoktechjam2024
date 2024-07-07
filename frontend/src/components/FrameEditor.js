@@ -4,7 +4,7 @@ import { FaStar } from 'react-icons/fa';
 
 const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
 
-function FrameEditor({ frame }) {
+function FrameEditor({ frame, setInitKeypoints, setInitLabels }) {
     const [keypoints, setKeypoints] = useState([]);
     const [labels, setLabels] = useState([]);
     const [selectedTool, setSelectedTool] = useState('positive');
@@ -16,32 +16,44 @@ function FrameEditor({ frame }) {
     const [guidance, setGuidance] = useState(7.5);
     const [strength, setStrength] = useState(1.0);
     const [iterations, setIterations] = useState(50);
+    const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
+
+    const handleImageLoad = (e) => {
+        setOriginalDimensions({ width: e.target.naturalWidth, height: e.target.naturalHeight });
+    };
 
     const handleMouseClick = (e) => {
         const img = e.target;
         const rect = img.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = ((e.clientX - rect.left) / rect.width) * originalDimensions.width;
+        const y = ((e.clientY - rect.top) / rect.height) * originalDimensions.height;
+
         const newKeypoint = [x, y];
+        const newLabel = selectedTool === 'positive' ? 1 : 0; // Use 1 for positive and 0 for negative
 
-        if (selectedTool === 'positive') {
-            setLabels([...labels, 'positive']);
-        } else {
-            setLabels([...labels, 'negative']);
-        }
+        setInitKeypoints([...keypoints, newKeypoint]);
+        setInitLabels([...labels, newLabel]);
+
         setKeypoints([...keypoints, newKeypoint]);
+        setLabels([...labels, newLabel]);
     };
-
-
 
     const handleClearKeypoints = () => {
         setKeypoints([]);
+        setLabels([]);
+
+        setInitKeypoints([]);
+        setInitLabels([]);
     };
 
     const handleBackspace = (e) => {
         if (e.key === 'Backspace' && !e.target.matches('input, textarea')) {
             e.preventDefault();
             setKeypoints(keypoints.slice(0, -1));
+            setLabels(labels.slice(0, -1));
+
+            setInitKeypoints(keypoints.slice(0, -1));
+            setInitLabels(labels.slice(0, -1));
         }
     };
 
@@ -50,7 +62,7 @@ function FrameEditor({ frame }) {
         return () => {
             document.removeEventListener('keydown', handleBackspace);
         };
-    }, [keypoints]);
+    }, [keypoints, labels]);
 
     const handleSegmentFrame = async () => {
         try {
@@ -62,7 +74,7 @@ function FrameEditor({ frame }) {
                 body: JSON.stringify({
                     frame,  // Ensure frame is a base64 encoded string
                     keypoints: keypoints, // Send keypoints as list of lists
-                    labels: keypoints.map(() => (selectedTool === 'positive' ? 1 : 0)), // Ensure labels are correct
+                    labels: labels, // Send labels as is
                 }),
             });
             if (!response.ok) {
@@ -178,12 +190,12 @@ function FrameEditor({ frame }) {
             </div>
             <div className="images-container">
                 <div className="selected-frame" onClick={handleMouseClick}>
-                    <img src={`data:image/jpeg;base64,${frame}`} alt="Selected Frame" />
+                    <img src={`data:image/jpeg;base64,${frame}`} alt="Selected Frame" onLoad={handleImageLoad} />
                     {keypoints.map((kp, index) => (
                         <FaStar
                             key={index}
                             className="star-icon"
-                            color={labels[index] === 'positive' ? 'green' : 'red'}
+                            color={labels[index] === 1 ? 'green' : 'red'}
                             style={{ top: `${kp[1]}px`, left: `${kp[0]}px` }}
                         />
                     ))}
@@ -200,7 +212,7 @@ function FrameEditor({ frame }) {
                 )}
                 {inpaintedFrame && (
                     <div className="inpainted-frame">
-                        <img src={`data:image/jpeg;base64,${inpaintedFrame}`} alt="Inpainted Frame" />
+                        <img src={`data:image/png;base64,${inpaintedFrame}`} alt="Inpainted Frame" />
                     </div>
                 )}
             </div>

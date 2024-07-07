@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy } from 'react';
 import FrameSlider from './components/FrameSlider';
 import FrameEditor from './components/FrameEditor';
 import './App.css';
@@ -16,6 +16,8 @@ function App() {
   const [totalFrames, setTotalFrames] = useState(0);
   const [segmentedFrames, setSegmentedFrames] = useState([]);
   const [inpaintedVideo, setInpaintedVideo] = useState(null);
+  const [keypoints, setKeypoints] = useState([]);
+  const [labels, setLabels] = useState([]);
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -61,7 +63,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ keypoints: [], labels: [] }), // Update with actual keypoints and labels if necessary
+        body: JSON.stringify({ keypoints: keypoints, labels: labels }), // Update with actual keypoints and labels if necessary
       });
       const data = await response.json();
       setSegmentedFrames(data.segmented_frames || []);
@@ -119,7 +121,7 @@ function App() {
         />
       )}
       {!loading && selectedFrame && (
-        <FrameEditor frame={selectedFrame} frameIndex={0} totalFrames={totalFrames} />
+        <FrameEditor frame={selectedFrame} setInitKeypoints={setKeypoints} setInitLabels={setLabels} />
       )}
       {!loading && (
         <div className="video-buttons">

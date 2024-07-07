@@ -150,13 +150,13 @@ def segment_frame():
     keypoints[:, 1] = keypoints[:, 1] * (actual_height / TARGET_HEIGHT)
 
     interactive_mask = segtracker.sam.segment_with_click(
-        frame_rgb, scaled_keypoints, labels, "True"
+        frame_rgb, keypoints, labels, "True"
     )
     refined_merged_mask = segtracker.add_mask(interactive_mask)
     blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
     keypoints = keypoints.astype(int)
-    for (x, y), label in zip(scaled_keypoints, labels):
+    for (x, y), label in zip(keypoints, labels):
         print(f"Drawing marker at ({x}, {y}) with label {label}")  # Debug line
         color = (0, 255, 0) if label == 1 else (0, 0, 255)
         cv2.drawMarker(

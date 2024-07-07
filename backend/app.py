@@ -186,7 +186,7 @@ def segment_video():
         print("Invalid request payload:", data)  # Debugging line
         return jsonify({"error": "Invalid request payload"}), 400
 
-    keypoints = np.array(data["keypoints"])
+    keypoints = np.array(data["keypoints"]).astype(int)
     labels = np.array(data["labels"])
     frames = data["frames"]
 
@@ -204,15 +204,11 @@ def segment_video():
     try:
         init_frame = decoded_frames[0]
         init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
-        init_frame_tensor = (
-            torch.tensor(init_frame_rgb, dtype=torch.float32).permute(2, 0, 1).cuda()
-            / 255.0
-        )
 
         segtracker = SegTracker(segtracker_args, sam_args, aot_args)
         segtracker.restart_tracker()
         interactive_mask = segtracker.sam.segment_with_click(
-            init_frame_tensor.half(), keypoints, labels, "True"
+            init_frame_rgb, keypoints, labels, "True"
         )
         refined_merged_mask = segtracker.add_mask(interactive_mask)
         segtracker = SegTracker_add_first_frame(

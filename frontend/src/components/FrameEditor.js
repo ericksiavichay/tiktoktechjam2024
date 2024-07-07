@@ -18,14 +18,10 @@ function FrameEditor({ frame }) {
 
     const handleMouseClick = (e) => {
         const rect = e.target.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = Math.round(e.clientX - rect.left);
+        const y = Math.round(e.clientY - rect.top);
 
-        const newKeypoint = {
-            type: selectedTool,
-            x,
-            y,
-        };
+        const newKeypoint = [x, y];
 
         setKeypoints([...keypoints, newKeypoint]);
     };
@@ -57,8 +53,8 @@ function FrameEditor({ frame }) {
                 },
                 body: JSON.stringify({
                     frame,  // Ensure frame is a base64 encoded string
-                    keypoints: keypoints.map(kp => ({ x: kp.x, y: kp.y })), // Fix keypoint format
-                    labels: keypoints.map(kp => (kp.type === 'positive' ? 1 : 0)),
+                    keypoints: keypoints, // Send keypoints as list of lists
+                    labels: keypoints.map(() => (selectedTool === 'positive' ? 1 : 0)), // Ensure labels are correct
                 }),
             });
             if (!response.ok) {
@@ -179,8 +175,8 @@ function FrameEditor({ frame }) {
                         <FaStar
                             key={index}
                             className="star-icon"
-                            color={kp.type === 'positive' ? 'green' : 'red'}
-                            style={{ top: kp.y, left: kp.x }}
+                            color={selectedTool === 'positive' ? 'green' : 'red'}
+                            style={{ top: kp[1], left: kp[0] }}
                         />
                     ))}
                 </div>

@@ -115,6 +115,21 @@ def inpaint_frame():
     return jsonify({"inpainted_frame": inpainted_frame_str})
 
 
+@app.route("/inpaint_video_masks", methods=["POST"])
+def inpaint_video_masks():
+    data = request.get_json()
+    prompt = data["prompt"]
+    negative_prompt = data["negative_prompt"]
+    guidance = data["guidance"]
+    strength = data["strength"]
+    iterations = data["iterations"]
+    masks = data["data"]
+
+    masks = np.array(masks)
+
+    return jsonify({"debug": "Not implemented yet"})
+
+
 @app.route("/inpaint_video/<filename>", methods=["POST"])
 def inpaint_video(filename):
     data = request.get_json()
@@ -133,7 +148,15 @@ def inpaint_video(filename):
     out_path = MOVIES_DIR + "/" + "inpaint_" + filename
     out = None
 
-    masks_payload = {"data": []}
+    masks_payload = {
+        "data": [],
+        "prompt": prompt,
+        "negative_prompt": negative_prompt,
+        "guidance": guidance,
+        "strength": strength,
+        "num_inference_steps": num_inference_steps,
+        "iterations": num_inference_steps,
+    }
     while video.isOpened():
         ret, frame = video.read()
         if not ret:
@@ -148,7 +171,7 @@ def inpaint_video(filename):
 
     try:
         response = requests.post(
-            f"{}/inpaint_video_masks",
+            f"{REMOTE_HOST}/inpaint_video_masks",
             json=masks_payload,
         )
         response.raise_for_status()

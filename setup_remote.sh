@@ -52,4 +52,4 @@ read -r NGROK_AUTH_TOKEN
 export NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN
 ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
-echo "Setup complete. Make sure to update your LOCAL FRONTEND .env and your REMOTE BACKEND .env files."
+echo "Setup complete. Make sure to update your LOCAL FRONTEND and BACKEND .env and your REMOTE BACKEND .env files."

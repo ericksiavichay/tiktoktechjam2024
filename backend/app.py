@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import cv2
 import numpy as np
 import base64
 from flask_cors import CORS
 from dotenv import load_dotenv
+import requests
 import os
 
 
@@ -14,52 +15,32 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins for developm
 TARGET_WIDTH = 8 * 25
 TARGET_HEIGHT = 8 * 56
 MAX_DURATION = 10  # Maximum duration to process in seconds
-FPS = 30  # Assuming a common FPS; can be adjusted as needed
+FPS = 25  # Assuming a common FPS; can be adjusted as needed
 
 MOVIES_DIR = "../movies"
 LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
 LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
+REMOTE_HOST = os.getenv("REMOTE_HOST", None)
 SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
     device = "cuda"
 
-    import torch
-    import gc
-
-    from segmentation import (
-        SegTracker,
-        segtracker_args,
-        SegTracker_add_first_frame,
-        sam_args,
-        aot_args,
-    )
-
-    from seg_track_anything import aot_model2ckpt, tracking_objects_in_video
-
-    # Initialize SegTracker
-    aot_model = "r50_deaotl"
-    long_term_mem = 9999
-    max_len_long_term = 9999
-    sam_gap = 100
-    max_obj_num = 255
-    points_per_side = 16
-
-    # Initialize SegTracker arguments
-    segtracker_args["sam_gap"] = sam_gap
-    segtracker_args["max_obj_num"] = max_obj_num
-    sam_args["generator_args"]["points_per_side"] = points_per_side
-    aot_args["model"] = aot_model
-    aot_args["model_path"] = aot_model2ckpt[aot_model]
-    aot_args["long_term_mem_gap"] = long_term_mem
-    aot_args["max_len_long_term"] = max_len_long_term
-
-    # Initialize segmentation tracker
-    segtracker = SegTracker(segtracker_args, sam_args, aot_args)
-    segtracker.restart_tracker()
-
     # Initialize inpainting pipeline
     from inpaint import inpaint
+
+else:
+    device = "cpu"
+    from ultralytics import FastSAM
+    from ultralytics.models.fastsam import FastSAMPrompt
+
+    app.logger.info("Loading FastSAM model")
+    model = FastSAM("FastSAM-s.pt")
+
+
+def format_shape(shape):
+    # coverts shape to nearest multiple of 8
+    return (shape[0] // 8) * 8, (shape[1] // 8) * 8
 
 
 def resize_and_crop_frame(frame):
@@ -88,10 +69,7 @@ def resize_and_crop_frame(frame):
         start_y : start_y + TARGET_HEIGHT, start_x : start_x + TARGET_WIDTH
     ]
 
-    # Encode the cropped frame as a base64 string
-    _, buffer = cv2.imencode(".jpg", cropped_frame)
-    frame_str = base64.b64encode(buffer).decode("utf-8")
-    return frame_str
+    return cropped_frame
 
 
 def blend_mask_with_image(image, mask, color=(0, 255, 0), alpha=0.5):
@@ -137,116 +115,121 @@ def inpaint_frame():
     return jsonify({"inpainted_frame": inpainted_frame_str})
 
 
+@app.route("/inpaint_video/<filename>", methods=["POST"])
+def inpaint_video(filename):
+    data = request.get_json()
+    prompt = data["prompt"]
+    negative_prompt = data["negative_prompt"]
+    guidance = data["guidance"]
+    strength = data["strength"]
+    num_inference_steps = data["iterations"]
+    source = MOVIES_DIR + "/" + filename
+
+    video = cv2.VideoCapture(source)
+    if not video.isOpened():
+        return jsonify({"error": "Error opening video file"}), 400
+
+    fourcc = cv2.VideoWriter_fourcc(*"X264")
+    out_path = MOVIES_DIR + "/" + "inpaint_" + filename
+    out = None
+
+    masks_payload = {"data": []}
+    while video.isOpened():
+        ret, frame = video.read()
+        if not ret:
+            break
+
+        if not out:
+            h, w, _ = frame.shape
+            out = cv2.VideoWriter(out_path, fourcc, FPS, (w, h), isColor=True)
+        # Get the mask as a grayscale image
+        mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        masks_payload["data"].append(mask.tolist())
+
+    try:
+        response = requests.post(
+            f"{}/inpaint_video_masks",
+            json=masks_payload,
+        )
+        response.raise_for_status()
+        masks = response.json()["masks"]
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+    out.release()
+    video.release()
+    cv2.destroyAllWindows()
+
+    return jsonify({"out_path": out_path})
+
+
 @app.route("/segment_frame", methods=["POST"])
 def segment_frame():
     data = request.get_json()
     frame_base64 = data["frame"]
-    keypoints = np.array(data["keypoints"])
-    labels = np.array(data["labels"])
+    segmentation_prompt = data["segmentation_prompt"]
 
     nparr = np.frombuffer(base64.b64decode(frame_base64), np.uint8)
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    # Get the actual dimensions of the frame
-    actual_height, actual_width, _ = frame.shape
-
-    # Scale the keypoints to match the frame dimensions
-    keypoints[:, 0] = keypoints[:, 0] * (actual_width / TARGET_WIDTH)
-    keypoints[:, 1] = keypoints[:, 1] * (actual_height / TARGET_HEIGHT)
-
-    interactive_mask = segtracker.sam.segment_with_click(
-        frame_rgb, keypoints, labels, "True"
+    app.logger.info("Segmenting single frame")
+    results = model(frame_rgb, device=device, imgsz=TARGET_WIDTH, stream=False)
+    app.logger.info("Finished segmenting frame")
+    app.logger.info("Prompting FastSAM model")
+    prompt_process = FastSAMPrompt(frame_rgb, results, device=device)
+    mask = (
+        prompt_process.text_prompt(text=segmentation_prompt)[0]
+        .masks.data[0]
+        .cpu()
+        .numpy()
+        .astype(np.uint8)
     )
-    refined_merged_mask = segtracker.add_mask(interactive_mask)
-    blended_frame_bgr = blend_mask_with_image(frame_rgb, refined_merged_mask)
 
-    keypoints = keypoints.astype(int)
-    for (x, y), label in zip(keypoints, labels):
-        color = (0, 255, 0) if label == 1 else (0, 0, 255)
-        cv2.drawMarker(
-            blended_frame_bgr,
-            (x, y),
-            color,
-            markerType=cv2.MARKER_STAR,
-            markerSize=20,
-            thickness=2,
-        )
+    # Resize mask to be same size as frame_rgb
+    mask = cv2.resize(mask, (frame_rgb.shape[1], frame_rgb.shape[0]))
+
+    blended_frame_bgr = blend_mask_with_image(frame_rgb, mask)
 
     _, buffer_blended = cv2.imencode(".jpg", blended_frame_bgr)
     blended_frame_str = base64.b64encode(buffer_blended).decode("utf-8")
 
-    _, buffer_mask = cv2.imencode(".png", refined_merged_mask * 255)
+    _, buffer_mask = cv2.imencode(".png", mask * 255)
     mask_str = base64.b64encode(buffer_mask).decode("utf-8")
 
     return jsonify({"blended_frame": blended_frame_str, "mask": mask_str})
 
 
-@app.route("/segment_video", methods=["POST"])
-def segment_video():
+@app.route("/segment_video/<filename>", methods=["POST"])
+def segment_video(filename):
     data = request.get_json()
-    if not data or "keypoints" not in data or "labels" not in data:
-        print("Invalid request payload:", data)  # Debugging line
-        return jsonify({"error": "Invalid request payload"}), 400
+    segmentation_prompt = data["segmentation_prompt"]
+    source = MOVIES_DIR + "/" + filename
+    results = model.track(
+        source, device=device, imgsz=312, conf=0.5, iou=0.9, stream=False
+    )
+    print("Finished segmenting video")
+    prompt_process = FastSAMPrompt(source, results, device=device)
+    ann = prompt_process.text_prompt(text=segmentation_prompt)
 
-    keypoints = np.array(data["keypoints"]).astype(int)
-    labels = np.array(data["labels"]).astype(int)
-    frames = data["frames"]
+    out_path = MOVIES_DIR + "/" + "segmented_" + filename
+    _, H, W = ann[0][0].masks.data.cpu().numpy().shape
+    fourcc = cv2.VideoWriter_fourcc(*"X264")
+    out = cv2.VideoWriter(out_path, fourcc, FPS, (W, H), isColor=False)
+    for i, result in enumerate(ann):
 
-    decoded_frames = [
-        cv2.imdecode(np.frombuffer(base64.b64decode(frame), np.uint8), cv2.IMREAD_COLOR)
-        for frame in frames
-    ]
+        mask = result[0].masks.data.cpu().numpy().astype(np.uint8).squeeze(0) * 255
+        print(f"Processing Mask [{i+1}/{len(ann)}], shape: {mask.shape}")
+        formatted_H, formatted_W = format_shape(mask.shape)
+        mask = cv2.resize(mask, (formatted_W, formatted_H))
+        out.write(mask)
 
-    if not decoded_frames:
-        return jsonify({"error": "No frames available for segmentation"}), 400
+    out.release()
+    cv2.destroyAllWindows()
 
-    print("Received keypoints in segment video:", keypoints)  # Debugging line
-    print("Received labels in segment video:", labels)  # Debugging line
+    app.logger.info("Finished segmenting video")
 
-    try:
-        init_frame = decoded_frames[0]
-        init_frame_rgb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2RGB)
-
-        segtracker = SegTracker(segtracker_args, sam_args, aot_args)
-        segtracker.restart_tracker()
-        interactive_mask = segtracker.sam.segment_with_click(
-            init_frame_rgb, keypoints, labels, "True"
-        )
-        refined_merged_mask = segtracker.add_mask(interactive_mask)
-        segtracker = SegTracker_add_first_frame(
-            segtracker, init_frame_rgb, refined_merged_mask
-        )
-
-        display_segmented_frames = []
-        sam_gap = segtracker.sam_gap
-        for i, frame in enumerate(decoded_frames):
-            app.logger.info(f"Segmenting frame {i+1}/{len(decoded_frames)}")
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).astype(np.half)
-            if i == 0:
-                pred_mask = segtracker.first_frame_mask
-            elif i % sam_gap == 0:
-                seg_mask = segtracker.seg(frame_rgb)
-                track_mask = segtracker.track(frame_rgb)
-                torch.cuda.empty_cache()
-                gc.collect()
-                new_obj_mask = segtracker.find_new_objs(track_mask, seg_mask)
-                pred_mask = track_mask + new_obj_mask
-                segtracker.add_reference_frame(frame_rgb, pred_mask)
-            else:
-                pred_mask = segtracker.track(frame_rgb, update_memory=True)
-
-            torch.cuda.empty_cache()
-            gc.collect()
-
-            _, buffer_mask = cv2.imencode(".png", pred_mask.astype(np.uint8) * 255)
-            mask_str = base64.b64encode(buffer_mask).decode("utf-8")
-            display_segmented_frames.append(mask_str)
-
-        return jsonify({"segmented_frames": display_segmented_frames})
-    except Exception as e:
-        print("Error during segmentation:", str(e))  # Debugging line
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"out_path": out_path})
 
 
 @app.route("/movies", methods=["GET"])
@@ -271,41 +254,19 @@ def get_movie_thumbnail(filename):
         if not ret:
             return jsonify({"error": "Error reading frame"}), 400
 
-        resized_frame = resize_and_crop_frame(frame)
-        return jsonify({"thumbnail": resized_frame})
+        frame = resize_and_crop_frame(frame)
+        # Encode the cropped frame as a base64 string
+        _, buffer = cv2.imencode(".jpg", frame)
+        frame = base64.b64encode(buffer).decode("utf-8")
+        return jsonify({"thumbnail": frame})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/movies/<filename>", methods=["GET"])
-def get_movie_frames(filename):
-    try:
-        video_path = os.path.join(MOVIES_DIR, filename)
-        video = cv2.VideoCapture(video_path)
-
-        if not video.isOpened():
-            app.logger.error("Error opening video file")
-            return jsonify({"error": "Error opening video file"}), 400
-
-        frames = []
-        count = 0
-        total_frames = min(int(video.get(cv2.CAP_PROP_FRAME_COUNT)), MAX_DURATION * FPS)
-
-        while video.isOpened() and count < total_frames:
-            ret, frame = video.read()
-            if not ret:
-                break
-            frame_str = resize_and_crop_frame(frame)
-            frames.append(frame_str)
-            count += 1
-
-            app.logger.info(f"Processed frame {count}/{total_frames}")
-
-        video.release()
-        app.logger.info("Video processing complete")
-        return jsonify({"frames": frames, "total_frames": total_frames})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+def get_movie(filename):
+    app.logger.info(f"Retrieving movie {filename}")
+    return send_from_directory(MOVIES_DIR, filename)
 
 
 if __name__ == "__main__":

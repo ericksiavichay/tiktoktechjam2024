@@ -3,14 +3,14 @@ import './FrameEditor.css';
 import { FaStar } from 'react-icons/fa';
 
 const REMOTE_HOST = process.env.REACT_APP_REMOTE_HOST;
+const LOCAL_BACKEND_PORT = process.env.REACT_APP_LOCAL_BACKEND_PORT;
+const LOCAL_HOST = process.env.REACT_APP_LOCAL_HOST;
 
-function FrameEditor({ frame, setInitKeypoints, setInitLabels }) {
-    const [keypoints, setKeypoints] = useState([]);
-    const [labels, setLabels] = useState([]);
-    const [selectedTool, setSelectedTool] = useState('positive');
+function FrameEditor({ frame, videoURL, setSegURL, setInpaintURL }) {
     const [blendedFrame, setBlendedFrame] = useState(null);
     const [mask, setMask] = useState(null);
     const [inpaintedFrame, setInpaintedFrame] = useState(null);
+    const [segmentationPrompt, setSegmentationPrompt] = useState('');
     const [prompt, setPrompt] = useState('');
     const [negativePrompt, setNegativePrompt] = useState('');
     const [guidance, setGuidance] = useState(7.5);
@@ -22,125 +22,72 @@ function FrameEditor({ frame, setInitKeypoints, setInitLabels }) {
         setOriginalDimensions({ width: e.target.naturalWidth, height: e.target.naturalHeight });
     };
 
-    const handleMouseClick = (e) => {
-        const img = e.target;
-        const rect = img.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * originalDimensions.width;
-        const y = ((e.clientY - rect.top) / rect.height) * originalDimensions.height;
-
-        const newKeypoint = [x, y];
-        const newLabel = selectedTool === 'positive' ? 1 : 0; // Use 1 for positive and 0 for negative
-
-        setInitKeypoints([...keypoints, newKeypoint]);
-        setInitLabels([...labels, newLabel]);
-
-        setKeypoints([...keypoints, newKeypoint]);
-        setLabels([...labels, newLabel]);
-    };
-
-    const handleClearKeypoints = () => {
-        setKeypoints([]);
-        setLabels([]);
-
-        setInitKeypoints([]);
-        setInitLabels([]);
-    };
-
-    const handleBackspace = (e) => {
-        if (e.key === 'Backspace' && !e.target.matches('input, textarea')) {
-            e.preventDefault();
-            setKeypoints(keypoints.slice(0, -1));
-            setLabels(labels.slice(0, -1));
-
-            setInitKeypoints(keypoints.slice(0, -1));
-            setInitLabels(labels.slice(0, -1));
-        }
-    };
-
-    useEffect(() => {
-        document.addEventListener('keydown', handleBackspace);
-        return () => {
-            document.removeEventListener('keydown', handleBackspace);
-        };
-    }, [keypoints, labels]);
-
     const handleSegmentFrame = async () => {
-        try {
-            const response = await fetch(`${REMOTE_HOST}/segment_frame`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    frame,  // Ensure frame is a base64 encoded string
-                    keypoints: keypoints, // Send keypoints as list of lists
-                    labels: labels, // Send labels as is
-                }),
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            setBlendedFrame(data.blended_frame);
-            setMask(data.mask);
-        } catch (error) {
-            console.error('Error segmenting frame:', error);
-        }
+        const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/segment_frame`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                frame,
+                segmentation_prompt: segmentationPrompt,
+            }),
+        });
+        const data = await response.json();
+        setBlendedFrame(data.blended_frame);
+        setMask(data.mask);
     };
 
-    const handleInpaintFrame = async () => {
-        try {
-            const response = await fetch(`${REMOTE_HOST}/inpaint_frame`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    frame,  // Ensure frame is a base64 encoded string
-                    mask,
-                    prompt,
-                    negative_prompt: negativePrompt,
-                    guidance: parseFloat(guidance),
-                    strength: parseFloat(strength),
-                    iterations: parseInt(iterations),
-                }),
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            setInpaintedFrame(data.inpainted_frame);
-        } catch (error) {
-            console.error('Error inpainting frame:', error);
-        }
-    };
+    const handleSegmentVideo = async () => {
+        const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/segment_video/${videoURL}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                segmentation_prompt: segmentationPrompt,
+            }),
+        });
+        const data = await response.json();
+        setSegURL(data.out_path);
+    }
+
+    const handleInpaintVideo = async () => {
+        const response = await fetch(`${LOCAL_HOST}:${LOCAL_BACKEND_PORT}/inpaint_video/segmented_${videoURL}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt,
+                negative_prompt: negativePrompt,
+                guidance,
+                strength,
+                iterations,
+            }),
+        });
+
+        const data = await response.json();
+        setInpaintURL(data.out_path);
+
+    }
 
     return (
         <div className="frame-editor">
-            <h2>Selected Frame 1/1</h2>
-            <div className="tools">
-                <button
-                    className={`tool-button ${selectedTool === 'positive' ? 'selected' : ''}`}
-                    onClick={() => setSelectedTool('positive')}
-                >
-                    <FaStar color="green" /> Positive Keypoint
-                </button>
-                <button
-                    className={`tool-button ${selectedTool === 'negative' ? 'selected' : ''}`}
-                    onClick={() => setSelectedTool('negative')}
-                >
-                    <FaStar color="red" /> Negative Keypoint
-                </button>
-                <button className="tool-button" onClick={handleClearKeypoints}>
-                    Clear Keypoints
-                </button>
-                <button className="tool-button" onClick={handleSegmentFrame}>
-                    Segment Frame
-                </button>
-            </div>
+            <h2>Initial Movie Frame</h2>
+
             <div className="prompts">
                 <div className="prompt">
-                    <label htmlFor="prompt">Prompt</label>
+                    <label htmlFor="segmentation-prompt">Segmentation Prompt</label>
+                    <input
+                        id="segmentation-prompt"
+                        type="text"
+                        value={segmentationPrompt}
+                        onChange={(e) => setSegmentationPrompt(e.target.value)}
+                    />
+                </div>
+                <div className="prompt">
+                    <label htmlFor="prompt">Inpaint Prompt</label>
                     <input
                         id="prompt"
                         type="text"
@@ -184,21 +131,29 @@ function FrameEditor({ frame, setInitKeypoints, setInitLabels }) {
                         onChange={(e) => setIterations(e.target.value)}
                     />
                 </div>
-                <button className="tool-button" onClick={handleInpaintFrame}>
-                    Inpaint Frame
-                </button>
+                <div className="tools">
+                    <button className="tool-button" onClick={handleSegmentFrame}>
+                        Segment Frame
+                    </button>
+
+                    <button className="tool-button" onClick=''>
+                        Inpaint Frame
+                    </button>
+
+                    <button className="tool-button" onClick={handleSegmentVideo}>
+                        Segment Video
+                    </button>
+
+                    <button className="tool-button" onClick={handleInpaintVideo}>
+                        Inpaint Video
+                    </button>
+                </div>
+
             </div>
             <div className="images-container">
-                <div className="selected-frame" onClick={handleMouseClick}>
+                <div className="selected-frame">
                     <img src={`data:image/jpeg;base64,${frame}`} alt="Selected Frame" onLoad={handleImageLoad} />
-                    {keypoints.map((kp, index) => (
-                        <FaStar
-                            key={index}
-                            className="star-icon"
-                            color={labels[index] === 1 ? 'green' : 'red'}
-                            style={{ top: `${kp[1]}px`, left: `${kp[0]}px` }}
-                        />
-                    ))}
+
                 </div>
                 {blendedFrame && (
                     <div className="blended-frame">

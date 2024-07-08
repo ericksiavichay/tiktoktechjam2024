@@ -14,3 +14,4 @@ movies/
 .conda/
 frontend/.env
 backend/.env
+backend/FastSAM*

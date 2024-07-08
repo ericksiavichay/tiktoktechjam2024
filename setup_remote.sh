@@ -4,29 +4,15 @@
 
 apt install bash
 # Change to the backend directory and download the SAM model checkpoint
-cd backend || exit
-# wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
-git clone https://github.com/z-x-yang/Segment-and-Track-Anything.git
-cd Segment-and-Track-Anything || exit
-rm app.py .gitignore README.md .gitattributes 
-# get back to the backend directory
-cd ..
-mv Segment-and-Track-Anything/* .
-bash script/install.sh
-mkdir ./ckpt
-pip install gdown
-bash script/download_ckpt.sh
-
 echo "Please enter your civit AI API key: "
 read -r CIVIT_AI_API_KEY
 export CIVIT_AI_API_KEY=$CIVIT_AI_API_KEY
 curl -L -H "Content-Type: application/json" -H "Authorization: Bearer $CIVIT_AI_API_KEY" -o inpaint.safetensors "https://civitai.com/api/download/models/267129"
 
+cd backend || exit
 # Upgrade pip
 pip install --upgrade pip
-
 pip install --ignore-installed blinker
-
 # Install Python dependencies from remote.txt
 pip install -r remote.txt
 
@@ -34,8 +20,6 @@ pip uninstall -y transformers
 pip install transformers
 # Change back to the root directory
 cd ..
-
-
 
 # Create .env files at the root of frontend and backend directories
 cat <<EOL > backend/.env

@@ -163,8 +163,8 @@ pipe = StableDiffusionInpaintPipeline.from_single_file(
 
 
 def inpaint(
-    img: np.ndarray,
-    mask: np.ndarray,
+    img,
+    mask,
     text_prompt: str,
     negative_prompt="",
     height=512,
@@ -189,15 +189,15 @@ def inpaint(
         (
             pipe(
                 prompt=text_prompt,
-                image=Image.fromarray(img),
-                mask_image=Image.fromarray(mask.astype(np.uint8)),
+                image=img,
+                mask_image=mask,
                 negative_prompt=negative_prompt,
                 height=height,
                 width=width,
                 guidance_scale=guidance_scale,
                 strength=strength,
                 num_inference_steps=num_inference_steps,
-                output_type="pt",
+                output_type="np",
             ).images[0]
             * 255
         )

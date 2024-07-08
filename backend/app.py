@@ -117,13 +117,24 @@ def inpaint_frame():
 
 @app.route("/inpaint_video_masks", methods=["POST"])
 def inpaint_video_masks():
+    print("Loading payload in inpaint_video_masks")
     data = request.get_json()
+    print("Finished loading payload in inpaint_video_masks")
+    masks = data["masks"]
+    masks = [Image.fromarray(np.array(mask)) for mask in masks]
+    images = data["images"]
+    images = [Image.fromarray(np.array(image)) for image in data["images"]]
     prompt = data["prompt"]
     negative_prompt = data["negative_prompt"]
     guidance = data["guidance"]
     strength = data["strength"]
     iterations = data["iterations"]
-    masks = data["data"]
+
+    H, W = masks[0].shape
+
+    inpainted = inpaint(
+        images, masks, prompt, negative_prompt, H, W, guidance, strength, iterations
+    )
 
     masks = np.array(masks)
 
@@ -144,12 +155,13 @@ def inpaint_video(filename):
     if not video.isOpened():
         return jsonify({"error": "Error opening video file"}), 400
 
-    fourcc = cv2.VideoWriter_fourcc(*"X264")
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")
     out_path = MOVIES_DIR + "/" + "inpaint_" + filename
     out = None
 
     masks_payload = {
-        "data": [],
+        "images": [],
+        "masks": [],
         "prompt": prompt,
         "negative_prompt": negative_prompt,
         "guidance": guidance,
@@ -157,6 +169,7 @@ def inpaint_video(filename):
         "num_inference_steps": num_inference_steps,
         "iterations": num_inference_steps,
     }
+    frame_count = 1
     while video.isOpened():
         ret, frame = video.read()
         if not ret:
@@ -167,20 +180,39 @@ def inpaint_video(filename):
             out = cv2.VideoWriter(out_path, fourcc, FPS, (w, h), isColor=True)
         # Get the mask as a grayscale image
         mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        masks_payload["data"].append(mask.tolist())
+        masks_payload["images"].append(frame.tolist())
+        masks_payload["masks"].append(mask.tolist())
+        frame_count += 1
+        print(f"Processing Frame [{frame_count}]")
+
+    video.release()
 
     try:
-        response = requests.post(
-            f"{REMOTE_HOST}/inpaint_video_masks",
-            json=masks_payload,
-        )
-        response.raise_for_status()
-        masks = response.json()["masks"]
+        batch_size = 24
+        for i in range(0, len(masks_payload["images"]), batch_size):
+            print(
+                f"Processing batch [{i//batch_size+1}/{len(masks_payload['images'])//batch_size}]"
+            )
+            batch = {
+                "images": masks_payload["images"][i : i + batch_size],
+                "masks": masks_payload["masks"][i : i + batch_size],
+                "prompt": masks_payload["prompt"],
+                "negative_prompt": masks_payload["negative_prompt"],
+                "guidance": masks_payload["guidance"],
+                "strength": masks_payload["strength"],
+                "num_inference_steps": masks_payload["num_inference_steps"],
+                "iterations": masks_payload["iterations"],
+            }
+            response = requests.post(
+                f"{REMOTE_HOST}/inpaint_video_masks",
+                json=batch,
+            )
+            response.raise_for_status()
+            masks = response.json()["masks"]
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
     out.release()
-    video.release()
     cv2.destroyAllWindows()
 
     return jsonify({"out_path": out_path})
@@ -237,7 +269,7 @@ def segment_video(filename):
 
     out_path = MOVIES_DIR + "/" + "segmented_" + filename
     _, H, W = ann[0][0].masks.data.cpu().numpy().shape
-    fourcc = cv2.VideoWriter_fourcc(*"X264")
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")
     out = cv2.VideoWriter(out_path, fourcc, FPS, (W, H), isColor=False)
     for i, result in enumerate(ann):
 

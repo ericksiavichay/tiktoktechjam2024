@@ -3,13 +3,13 @@
 # Only tested on runpod.io servers
 
 apt install bash
-# Change to the backend directory and download the SAM model checkpoint
+# Change to the backend directory 
+cd backend || exit
 echo "Please enter your civit AI API key: "
 read -r CIVIT_AI_API_KEY
 export CIVIT_AI_API_KEY=$CIVIT_AI_API_KEY
 curl -L -H "Content-Type: application/json" -H "Authorization: Bearer $CIVIT_AI_API_KEY" -o inpaint.safetensors "https://civitai.com/api/download/models/267129"
 
-cd backend || exit
 # Upgrade pip
 pip install --upgrade pip
 pip install --ignore-installed blinker

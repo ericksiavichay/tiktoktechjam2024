@@ -65,7 +65,7 @@ function App() {
       )}
 
       {!loading && selectedFrame && (
-        <FrameEditor frame={selectedFrame} videoURL={selectedMovie} setSegURL={setSegURL} />
+        <FrameEditor frame={selectedFrame} videoURL={selectedMovie} setSegURL={setSegURL} setInpaintURL={setInpaintURL} />
       )}
 
       {!loading && segURL && (

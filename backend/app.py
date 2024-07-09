@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 import requests
 import os
 import PIL.Image as Image
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
+from multiprocessing import set_start_method
 
 
 load_dotenv()
@@ -28,6 +28,10 @@ SERVER = os.getenv("SERVER", "local")
 
 if SERVER == "remote":
     device = "cuda"
+    try:
+        set_start_method("spawn")
+    except RuntimeError:
+        pass
 
     # Initialize inpainting pipeline
     from inpaint import inpaint
@@ -134,7 +138,7 @@ def inpaint_video_masks():
     strength = data["strength"]
     iterations = data["iterations"]
 
-    H, W = masks[0].size
+    H, W = masks[0].shape
 
     args_list = [
         (
@@ -153,13 +157,8 @@ def inpaint_video_masks():
 
     max_workers = multiprocessing.cpu_count()
     print(f"Using {max_workers} workers")
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(inpaint, *args) for args in args_list]
-        results = [future.result() for future in as_completed(futures)]
-
-        inpainting_results = []
-        for result in results:
-            inpainting_results.append(result)
+    with multiprocessing.Pool(processes=max_workers) as pool:
+        results = pool.starmap(inpaint, args_list)
 
     inpainted = inpaint(
         images, masks, prompt, negative_prompt, H, W, guidance, strength, iterations

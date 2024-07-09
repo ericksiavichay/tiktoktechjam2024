@@ -10,6 +10,12 @@ read -r CIVIT_AI_API_KEY
 export CIVIT_AI_API_KEY=$CIVIT_AI_API_KEY
 curl -L -H "Content-Type: application/json" -H "Authorization: Bearer $CIVIT_AI_API_KEY" -o inpaint.safetensors "https://civitai.com/api/download/models/381459"
 
+curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+	| tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+	&& echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+	| tee /etc/apt/sources.list.d/ngrok.list \
+	&& apt update \
+	&& apt install ngrok
 # create ngrok auth token env variable
 echo "Please enter your ngrok auth token: "
 read -r NGROK_AUTH_TOKEN
@@ -43,12 +49,7 @@ EOL
 mkdir movies
 
 
-curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
-	| tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
-	&& echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
-	| tee /etc/apt/sources.list.d/ngrok.list \
-	&& apt update \
-	&& apt install ngrok
+
 
 apt -y install vim
 echo "Setup complete. Make sure to update your LOCAL FRONTEND and BACKEND .env and your REMOTE BACKEND .env files."

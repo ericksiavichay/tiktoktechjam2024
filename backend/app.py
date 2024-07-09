@@ -131,9 +131,9 @@ def inpaint_video_masks():
     data = request.get_json()
     print("Finished loading payload in inpaint_video_masks")
     masks = data["masks"]
-    masks = [np.array(mask).astype(np.uint8) for mask in masks]
+    masks = [(np.array(mask) / 255).astype(np.uint8) for mask in masks]
     images = data["images"]
-    images = [np.array(image).astype(np.float32) for image in images]
+    images = [(np.array(image) / 255).astype(np.float32) for image in images]
 
     prompt = data["prompt"]
     negative_prompt = data["negative_prompt"]
@@ -146,12 +146,11 @@ def inpaint_video_masks():
     inpainted_frames = []
     for i, (image, mask) in enumerate(zip(images, masks)):
         print(f"Processing Inpainted Frame [{i+1}/{len(images)}]")
+
         inpainted_frame = inpaint(
             image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
-        # Color correct inpainted frame by masking original frame with inverted mask and adding (normal mask * inpainted frame)
-        # inpainted_frame = mask * inpainted_frame + (1 - mask) * image
-        inpainted_frames.append(inpainted_frame)
+        inpainted_frames.append(inpainted_frame.tolist())
 
     return jsonify({"inpainted_frames": inpainted_frames}), 200
 
@@ -221,7 +220,7 @@ def inpaint_video(filename):
     video.release()
 
     try:
-        batch_size = 4
+        batch_size = 5
         for i in range(0, len(payload["images"]), batch_size):
             print(
                 f"Processing batch [{i//batch_size+1}/{len(payload['images'])//batch_size}]"
@@ -242,6 +241,16 @@ def inpaint_video(filename):
             )
             response.raise_for_status()
             batch_inpaints = response.json()["inpainted_frames"]
+            for inpainted_frame in batch_inpaints:
+                inpainted_frame_rgb = np.array(inpainted_frame).astype(np.uint8)
+                bgr_inpainted_frame = cv2.cvtColor(
+                    inpainted_frame_rgb, cv2.COLOR_RGB2BGR
+                )
+                out.write(bgr_inpainted_frame)
+
+        out.release()
+        cv2.destroyAllWindows()
+        return jsonify({"out_path": out_path})
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500

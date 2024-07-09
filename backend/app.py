@@ -146,6 +146,9 @@ def inpaint_video_masks():
         inpainted_frame = inpaint(
             image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
+        # Color correct inpainted frame by masking original frame with inverted mask and adding (normal mask * inpainted frame)
+        mask = mask / 255
+        inpainted_frame = mask * inpainted_frame + (1 - mask) * image
         inpainted_frames.append(inpainted_frame)
 
     return jsonify({"inpainted_frames": inpainted_frames}), 200
@@ -191,9 +194,7 @@ def inpaint_video(filename):
             h, w, _ = frame.shape
             out = cv2.VideoWriter(out_path, fourcc, FPS, (w, h), isColor=True)
         # Get the mask as a grayscale image
-        from pdb import set_trace
 
-        set_trace()
         mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
         payload["masks"].append(mask.tolist())
@@ -239,9 +240,6 @@ def inpaint_video(filename):
             )
             response.raise_for_status()
             batch_inpaints = response.json()["inpainted_frames"]
-            from pdb import set_trace
-
-            set_trace()
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500

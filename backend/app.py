@@ -150,7 +150,9 @@ def inpaint_video_masks():
         inpainted_frame = inpaint(
             image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
-        inpainted_frames.append(inpainted_frame.tolist())
+        _, buffer = cv2.imencode(".png", inpainted_frame)
+        inpainted_frame_str = base64.b64encode(buffer).decode("utf-8")
+        inpainted_frames.append(inpainted_frame_str)
 
     return jsonify({"inpainted_frames": inpainted_frames}), 200
 
@@ -240,9 +242,10 @@ def inpaint_video(filename):
                 json=batch,
             )
             response.raise_for_status()
-            batch_inpaints = response.json()["inpainted_frames"]
-            for inpainted_frame in batch_inpaints:
-                inpainted_frame_rgb = np.array(inpainted_frame).astype(np.uint8)
+            batch_inpaints_str = response.json()["inpainted_frames"]
+            for inpainted_frame_str in batch_inpaints_str:
+                nparr = np.frombuffer(base64.b64decode(inpainted_frame_str), np.uint8)
+                inpainted_frame_rgb = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 bgr_inpainted_frame = cv2.cvtColor(
                     inpainted_frame_rgb, cv2.COLOR_RGB2BGR
                 )

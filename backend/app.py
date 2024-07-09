@@ -130,7 +130,7 @@ def inpaint_video_masks():
     masks = data["masks"]
     masks = [np.array(mask).astype(np.uint8) for mask in masks]
     images = data["images"]
-    images = [np.array(image).astype(np.uint8) for image in images]
+    images = [np.array(image).astype(np.float32) for image in images]
 
     prompt = data["prompt"]
     negative_prompt = data["negative_prompt"]
@@ -147,8 +147,7 @@ def inpaint_video_masks():
             image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
         # Color correct inpainted frame by masking original frame with inverted mask and adding (normal mask * inpainted frame)
-        mask = mask / 255
-        inpainted_frame = mask * inpainted_frame + (1 - mask) * image
+        # inpainted_frame = mask * inpainted_frame + (1 - mask) * image
         inpainted_frames.append(inpainted_frame)
 
     return jsonify({"inpainted_frames": inpainted_frames}), 200
@@ -197,7 +196,7 @@ def inpaint_video(filename):
 
         mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
-        payload["masks"].append(mask.tolist())
+        payload["masks"].append((mask / 255.0).tolist())
         frame_count += 1
         print(f"Processing Frame [{frame_count}]")
     video.release()
@@ -212,7 +211,7 @@ def inpaint_video(filename):
         if not ret:
             break
 
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) / 255.00
         payload["images"].append(image.tolist())
         frame_count += 1
         print(f"Processing Frame [{frame_count}]")

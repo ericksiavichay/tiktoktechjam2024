@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import requests
 import os
 import PIL.Image as Image
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
 
 
 load_dotenv()
@@ -122,9 +124,9 @@ def inpaint_video_masks():
     data = request.get_json()
     print("Finished loading payload in inpaint_video_masks")
     masks = data["masks"]
-    masks = [Image.fromarray(np.array(mask).astype(np.uint8)) for mask in masks]
+    masks = [np.array(mask).astype(np.uint8) for mask in masks]
     images = data["images"]
-    images = [Image.fromarray(np.array(image).astype(np.uint8)) for image in images]
+    images = [np.array(image).astype(np.uint8) for image in images]
 
     prompt = data["prompt"]
     negative_prompt = data["negative_prompt"]
@@ -133,6 +135,31 @@ def inpaint_video_masks():
     iterations = data["iterations"]
 
     H, W = masks[0].size
+
+    args_list = [
+        (
+            images[i],
+            masks[i],
+            prompt,
+            negative_prompt,
+            H,
+            W,
+            guidance,
+            strength,
+            iterations,
+        )
+        for i in range(len(images))
+    ]
+
+    max_workers = multiprocessing.cpu_count()
+    print(f"Using {max_workers} workers")
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(inpaint, *args) for args in args_list]
+        results = [future.result() for future in as_completed(futures)]
+
+        inpainting_results = []
+        for result in results:
+            inpainting_results.append(result)
 
     inpainted = inpaint(
         images, masks, prompt, negative_prompt, H, W, guidance, strength, iterations
@@ -196,10 +223,6 @@ def inpaint_video(filename):
         ret, frame = video.read()
         if not ret:
             break
-
-        from pdb import set_trace
-
-        set_trace()
 
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         payload["images"].append(image.tolist())

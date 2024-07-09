@@ -201,8 +201,8 @@ def inpaint(
             ).images[0]
             * 255
         )
-        .cpu()
-        .numpy()
+        # .cpu()
+        # .numpy()
         .astype(np.uint8)
     ).transpose(1, 2, 0)
     return img_filled

@@ -3,12 +3,18 @@
 # Only tested on runpod.io servers
 
 apt install bash
-# Change to the backend directory 
+
 cd backend || exit
 echo "Please enter your civit AI API key: "
 read -r CIVIT_AI_API_KEY
 export CIVIT_AI_API_KEY=$CIVIT_AI_API_KEY
-curl -L -H "Content-Type: application/json" -H "Authorization: Bearer $CIVIT_AI_API_KEY" -o inpaint.safetensors "https://civitai.com/api/download/models/267129"
+curl -L -H "Content-Type: application/json" -H "Authorization: Bearer $CIVIT_AI_API_KEY" -o inpaint.safetensors "https://civitai.com/api/download/models/381459"
+
+# create ngrok auth token env variable
+echo "Please enter your ngrok auth token: "
+read -r NGROK_AUTH_TOKEN
+export NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN
+ngrok config add-authtoken $NGROK_AUTH_TOKEN
 
 # Upgrade pip
 pip install --upgrade pip
@@ -45,11 +51,4 @@ curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
 	&& apt install ngrok
 
 apt -y install vim
-
-# create ngrok auth token env variable
-echo "Please enter your ngrok auth token: "
-read -r NGROK_AUTH_TOKEN
-export NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN
-ngrok config add-authtoken $NGROK_AUTH_TOKEN
-
 echo "Setup complete. Make sure to update your LOCAL FRONTEND and BACKEND .env and your REMOTE BACKEND .env files."

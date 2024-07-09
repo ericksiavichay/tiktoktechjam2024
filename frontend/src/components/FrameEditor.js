@@ -61,9 +61,9 @@ function FrameEditor({ frame, videoURL, setSegURL, setInpaintURL }) {
             body: JSON.stringify({
                 prompt,
                 negative_prompt: negativePrompt,
-                guidance,
-                strength,
-                iterations,
+                guidance: parseFloat(guidance),
+                strength: parseFloat(strength),
+                iterations: parseInt(iterations),
             }),
         });
 

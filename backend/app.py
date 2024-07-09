@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import requests
 import os
 import PIL.Image as Image
+import multiprocessing
+from multiprocessing import set_start_method
 
 
 load_dotenv()
@@ -139,12 +141,12 @@ def inpaint_video_masks():
     H, W = masks[0].shape
 
     inpainted_frames = []
-    for i, image, mask in enumerate(zip(images, masks)):
+    for i, (image, mask) in enumerate(zip(images, masks)):
         print(f"Processing Inpainted Frame [{i+1}/{len(images)}]")
         inpainted_frame = inpaint(
             image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
-        inpainted_frames.append(inpainted_frame.tolist())
+        inpainted_frames.append(inpainted_frame)
 
     return jsonify({"inpainted_frames": inpainted_frames}), 200
 
@@ -212,7 +214,7 @@ def inpaint_video(filename):
     video.release()
 
     try:
-        batch_size = 24
+        batch_size = 4
         for i in range(0, len(payload["images"]), batch_size):
             print(
                 f"Processing batch [{i//batch_size+1}/{len(payload['images'])//batch_size}]"
@@ -233,6 +235,9 @@ def inpaint_video(filename):
             )
             response.raise_for_status()
             batch_inpaints = response.json()["inpainted_frames"]
+            from pdb import set_trace
+
+            set_trace()
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500

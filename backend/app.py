@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 import requests
 import os
 import PIL.Image as Image
-import multiprocessing
-from multiprocessing import set_start_method
 
 
 load_dotenv()
@@ -140,31 +138,15 @@ def inpaint_video_masks():
 
     H, W = masks[0].shape
 
-    args_list = [
-        (
-            images[i],
-            masks[i],
-            prompt,
-            negative_prompt,
-            H,
-            W,
-            guidance,
-            strength,
-            iterations,
+    inpainted_frames = []
+    for i, image, mask in enumerate(zip(images, masks)):
+        print(f"Processing Inpainted Frame [{i+1}/{len(images)}]")
+        inpainted_frame = inpaint(
+            image, mask, prompt, negative_prompt, H, W, guidance, strength, iterations
         )
-        for i in range(len(images))
-    ]
+        inpainted_frames.append(inpainted_frame.tolist())
 
-    max_workers = multiprocessing.cpu_count()
-    print(f"Using {max_workers} workers")
-    with multiprocessing.Pool(processes=max_workers) as pool:
-        results = pool.starmap(inpaint, args_list)
-
-    inpainted = inpaint(
-        images, masks, prompt, negative_prompt, H, W, guidance, strength, iterations
-    )
-
-    return jsonify({"debug": "Not implemented yet"})
+    return jsonify({"inpainted_frames": inpainted_frames}), 200
 
 
 @app.route("/inpaint_video/<filename>", methods=["POST"])
@@ -250,7 +232,8 @@ def inpaint_video(filename):
                 json=batch,
             )
             response.raise_for_status()
-            masks = response.json()["masks"]
+            batch_inpaints = response.json()["inpainted_frames"]
+
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 

@@ -191,7 +191,11 @@ def inpaint_video(filename):
             h, w, _ = frame.shape
             out = cv2.VideoWriter(out_path, fourcc, FPS, (w, h), isColor=True)
         # Get the mask as a grayscale image
+        from pdb import set_trace
+
+        set_trace()
         mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
         payload["masks"].append(mask.tolist())
         frame_count += 1
         print(f"Processing Frame [{frame_count}]")
@@ -306,6 +310,8 @@ def segment_video(filename):
         print(f"Processing Mask [{i+1}/{len(ann)}], shape: {mask.shape}")
         formatted_H, formatted_W = format_shape(mask.shape)
         mask = cv2.resize(mask, (formatted_W, formatted_H))
+        # ensure mask is binary of 0s and 255s
+        mask[mask > 0] = 255
         out.write(mask)
     out.release()
     cv2.destroyAllWindows()

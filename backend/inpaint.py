@@ -38,19 +38,23 @@ def inpaint(
     """
 
     img_filled = (
-        pipe(
-            prompt=text_prompt,
-            image=img,
-            mask_image=mask,
-            negative_prompt=negative_prompt,
-            height=height,
-            width=width,
-            guidance_scale=guidance_scale,
-            strength=strength,
-            num_inference_steps=num_inference_steps,
-            output_type="pil",
-        ).images[0]
+        (
+            pipe(
+                prompt=text_prompt,
+                image=img,
+                mask_image=mask,
+                negative_prompt=negative_prompt,
+                height=height,
+                width=width,
+                guidance_scale=guidance_scale,
+                strength=strength,
+                num_inference_steps=num_inference_steps,
+                output_type="np",
+            ).images[0]
+            * 255
+        )
         # .cpu()
         # .numpy()
+        .astype(np.uint8)
     )
     return img_filled

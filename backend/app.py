@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 import requests
 import os
 import PIL.Image as Image
-import multiprocessing
 from multiprocessing import set_start_method
 
 
@@ -21,8 +20,8 @@ MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 25  # Assuming a common FPS; can be adjusted as needed
 
 IMGSZ = 512
-CONF = 0.5
-IOU = 0.9
+CONF = 0.6
+IOU = 0.7
 
 MOVIES_DIR = "../movies"
 LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))

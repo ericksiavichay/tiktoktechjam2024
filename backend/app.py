@@ -20,6 +20,10 @@ TARGET_HEIGHT = 8 * 56
 MAX_DURATION = 10  # Maximum duration to process in seconds
 FPS = 25  # Assuming a common FPS; can be adjusted as needed
 
+IMGSZ = 512
+CONF = 0.5
+IOU = 0.9
+
 MOVIES_DIR = "../movies"
 LOCAL_BACKEND_PORT = int(os.getenv("LOCAL_BACKEND_PORT", 5001))
 LOCAL_HOST = os.getenv("LOCAL_HOST", "http://localhost")
@@ -196,7 +200,7 @@ def inpaint_video(filename):
 
         mask = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
-        payload["masks"].append((mask / 255.0).tolist())
+        payload["masks"].append(mask.tolist())
         frame_count += 1
         print(f"Processing Frame [{frame_count}]")
     video.release()
@@ -211,7 +215,7 @@ def inpaint_video(filename):
         if not ret:
             break
 
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) / 255.00
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         payload["images"].append(image.tolist())
         frame_count += 1
         print(f"Processing Frame [{frame_count}]")
@@ -292,7 +296,7 @@ def segment_video(filename):
     segmentation_prompt = data["segmentation_prompt"]
     source = MOVIES_DIR + "/" + filename
     results = model.track(
-        source, device=device, imgsz=312, conf=0.5, iou=0.9, stream=False
+        source, device=device, imgsz=IMGSZ, conf=CONF, iou=IOU, stream=False
     )
     print("Finished segmenting video")
     prompt_process = FastSAMPrompt(source, results, device=device)
